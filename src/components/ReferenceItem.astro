@@ -1,0 +1,36 @@
+---
+interface Props {
+  id?: string;
+  number: number;
+  authors: string;
+  title: string;
+  venue?: string;
+  year?: string | number;
+  doi?: string;
+  url?: string;
+}
+
+const {
+  id,
+  number,
+  authors,
+  title,
+  venue,
+  year,
+  doi,
+  url
+} = Astro.props;
+---
+
+<div class="reference-item-entry" id={id || `ref-${number}`}>
+  <span class="reference-num">[{number}]</span>
+  <span class="reference-text">
+    {authors}, "{title}"{venue ? `, in ${venue}` : ""}{year ? `, ${year}` : ""}.
+  </span>
+  {(doi || url) && (
+    <div class="reference-links">
+      {doi && <a href={`https://doi.org/${doi}`} target="_blank" rel="noopener noreferrer">DOI: {doi}</a>}
+      {url && <a href={url} target="_blank" rel="noopener noreferrer">Source URL ↗</a>}
+    </div>
+  )}
+</div>

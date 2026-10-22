@@ -1,0 +1,28 @@
+---
+interface Props {
+  title: string;
+  href: string;
+  description: string;
+  badge?: string;
+  actionText?: string;
+}
+
+const {
+  title,
+  href,
+  description,
+  badge,
+  actionText = "Explore section →"
+} = Astro.props;
+---
+
+<a href={href} class="academic-card">
+  <div class="academic-card-header">
+    <h3 class="academic-card-title">{title}</h3>
+    {badge && <span class="academic-card-badge">{badge}</span>}
+  </div>
+  <p class="academic-card-desc">{description}</p>
+  <div class="academic-card-footer">
+    <span>{actionText}</span>
+  </div>
+</a>

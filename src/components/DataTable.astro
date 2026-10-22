@@ -1,0 +1,45 @@
+---
+interface Props {
+  headers: string[];
+  rows?: (string | HTMLElement | any)[][];
+  caption?: string;
+}
+
+const {
+  headers,
+  rows = [],
+  caption
+} = Astro.props;
+---
+
+<div class="academic-table-wrap">
+  <table class="academic-table">
+    {caption && <caption style="caption-side: bottom; font-size: 0.8rem; color: var(--sl-color-gray-4); padding: 0.5rem 1rem; text-align: left;">{caption}</caption>}
+    <thead>
+      <tr>
+        {headers.map((h) => (
+          <th>{h}</th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {rows.length > 0 ? (
+        rows.map((row) => (
+          <tr>
+            {row.map((cell) => (
+              <td>{cell}</td>
+            ))}
+          </tr>
+        ))
+      ) : (
+        <slot>
+          <tr>
+            <td colspan={headers.length} style="text-align: center; color: var(--sl-color-gray-4); padding: 2rem;">
+              [Data records to be added]
+            </td>
+          </tr>
+        </slot>
+      )}
+    </tbody>
+  </table>
+</div>

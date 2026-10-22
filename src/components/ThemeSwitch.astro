@@ -1,0 +1,111 @@
+---
+// Segmented Light / Dark / Auto theme control. Replaces Starlight's theme <select>.
+// Uses the same localStorage key ('starlight-theme') as Starlight's ThemeProvider,
+// so the theme is applied before first paint on every page.
+---
+
+<dq-theme-switch class="dq-theme-switch">
+  <div class="seg" role="radiogroup" aria-label="Color theme">
+    <button type="button" data-v="light" role="radio" aria-checked="false" title="Light theme">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+      <span>Light</span>
+    </button>
+    <button type="button" data-v="dark" role="radio" aria-checked="false" title="Dark theme">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+      <span>Dark</span>
+    </button>
+    <button type="button" data-v="auto" role="radio" aria-checked="false" title="Match system setting">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg>
+      <span>Auto</span>
+    </button>
+  </div>
+</dq-theme-switch>
+
+<script is:inline>
+  (() => {
+    let v = '';
+    try { v = localStorage.getItem('starlight-theme') || ''; } catch (e) {}
+    const cur = v === 'light' || v === 'dark' ? v : 'auto';
+    document.querySelectorAll('dq-theme-switch button').forEach((b) => {
+      b.setAttribute('aria-checked', b.dataset.v === cur ? 'true' : 'false');
+    });
+  })();
+</script>
+
+<script>
+  type Theme = 'auto' | 'dark' | 'light';
+  const KEY = 'starlight-theme';
+  const parse = (t: unknown): Theme => (t === 'light' || t === 'dark' ? t : 'auto');
+  const load = (): Theme => {
+    try { return parse(localStorage.getItem(KEY)); } catch { return 'auto'; }
+  };
+  const system = () => (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+
+  function apply(theme: Theme) {
+    document.documentElement.dataset.theme = theme === 'auto' ? system() : theme;
+    try { localStorage.setItem(KEY, theme === 'auto' ? '' : theme); } catch {}
+    document.querySelectorAll<HTMLButtonElement>('dq-theme-switch button').forEach((b) => {
+      b.setAttribute('aria-checked', b.dataset.v === theme ? 'true' : 'false');
+    });
+  }
+
+  matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+    if (load() === 'auto') apply('auto');
+  });
+
+  class DqThemeSwitch extends HTMLElement {
+    connectedCallback() {
+      this.querySelectorAll<HTMLButtonElement>('button').forEach((b) => {
+        b.addEventListener('click', () => apply(parse(b.dataset.v)));
+      });
+      const buttons = [...this.querySelectorAll<HTMLButtonElement>('button')];
+      this.addEventListener('keydown', (e) => {
+        const i = buttons.indexOf(document.activeElement as HTMLButtonElement);
+        if (i < 0) return;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          const n = buttons[(i + (e.key === 'ArrowRight' ? 1 : buttons.length - 1)) % buttons.length];
+          n.focus();
+          apply(parse(n.dataset.v));
+          e.preventDefault();
+        }
+      });
+    }
+  }
+  if (!customElements.get('dq-theme-switch')) customElements.define('dq-theme-switch', DqThemeSwitch);
+</script>
+
+<style>
+  .dq-theme-switch { display: inline-flex; }
+  .seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--dq-line);
+    border-radius: 999px;
+    background: var(--dq-panel);
+  }
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 0;
+    border-radius: 999px;
+    padding: 0.32rem 0.7rem;
+    background: transparent;
+    color: var(--dq-muted);
+    font: 500 0.78rem/1 var(--sl-font);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+  button:hover { color: var(--dq-bright); }
+  button[aria-checked='true'] {
+    background: var(--dq-signal);
+    color: var(--dq-on-signal);
+  }
+  button:focus-visible { outline: 2px solid var(--dq-signal); outline-offset: 2px; }
+  @media (max-width: 72rem) {
+    button span { display: none; }
+    button { padding: 0.38rem 0.5rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { button { transition: none; } }
+</style>

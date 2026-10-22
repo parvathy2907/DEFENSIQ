@@ -1,0 +1,23 @@
+---
+interface Props {
+  label: string;
+  value?: string;
+  unit?: string;
+  description?: string;
+}
+
+const {
+  label,
+  value = "--",
+  unit = "",
+  description = "Experimental metric to be inserted."
+} = Astro.props;
+---
+
+<div class="metric-card-box">
+  <div class="metric-label">{label}</div>
+  <div class="metric-value-placeholder">
+    {value} {unit && <span style="font-size: 0.85rem; font-weight: normal; color: var(--sl-color-gray-3);">{unit}</span>}
+  </div>
+  {description && <div class="metric-desc">{description}</div>}
+</div>

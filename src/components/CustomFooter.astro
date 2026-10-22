@@ -1,0 +1,34 @@
+---
+import Default from '@astrojs/starlight/components/Footer.astro';
+---
+
+<Default {...Astro.props}>
+  <slot />
+</Default>
+
+<div class="academic-portal-footer">
+  <div class="academic-portal-footer-grid">
+    <div>
+      <div class="dq-logo-chip" style="margin-bottom: 0.9rem;"><img src="/images/amrita-logo-full.png" alt="Amrita Vishwa Vidyapeetham" style="height: 36px;" /></div>
+      <div class="footer-section-title">Research project</div>
+      <div class="footer-section-content">
+        <strong>An Evolutionary Framework for Ransomware Defense Optimization</strong>
+        <p style="margin-top: 0.35rem;">An evolutionary decision-support framework that recommends defenses against observed ransomware behavior.</p>
+      </div>
+    </div>
+    <div>
+      <div class="footer-section-title">Academic details</div>
+      <div class="footer-section-content">
+        <p><strong>Institution:</strong> Amrita Vishwa Vidyapeetham, Coimbatore</p>
+        <p><strong>Department:</strong> Computer Science and Engineering</p>
+        <p><strong>Research cluster:</strong> Knowledge Engineering and Semantic Computing</p>
+        <p><strong>Team:</strong> 42</p>
+        <p><strong>Guide:</strong> Ms. Rohini S · <strong>Co-guide:</strong> Dr. Gowtham R</p>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom-bar">
+    <span>Team 42 · Dept. of CSE · Amrita Vishwa Vidyapeetham, Coimbatore</span>
+    <span>Last updated October 2026</span>
+  </div>
+</div>

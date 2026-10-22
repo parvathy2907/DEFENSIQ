@@ -1,0 +1,66 @@
+---
+// Page title with a section label. Each documentation group has its own accent color.
+const route = Astro.locals.starlightRoute;
+const id: string = route.entry.id ?? '';
+const title: string = route.entry.data.title;
+
+const groups: Record<string, { tag: string; name: string; cls: string }> = {
+  overview: { tag: 'A', name: 'Project Overview', cls: 'g-a' },
+  research: { tag: 'B', name: 'Related Work & Research Gap', cls: 'g-b' },
+  methodology: { tag: 'C', name: 'System & Methodology', cls: 'g-c' },
+  evaluation: { tag: 'D', name: 'Evaluation', cls: 'g-d' },
+  resources: { tag: 'E', name: 'Discussion & Resources', cls: 'g-e' },
+};
+const group = groups[id.split('/')[0]];
+---
+
+<div class:list={['dq-title', group?.cls]}>
+  {group && (
+    <p class="dq-eyebrow">
+      <span class="dq-eyebrow-tag">{group.tag}</span>
+      <span>{group.name}</span>
+    </p>
+  )}
+  <h1 id="_top">{title}</h1>
+</div>
+
+<style>
+  .dq-title { position: relative; padding-top: 0.25rem; }
+  .dq-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0.5rem 0 0.25rem;
+    font-family: var(--sl-font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--g, var(--dq-signal));
+  }
+  .dq-eyebrow-tag {
+    display: inline-grid;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 6px;
+    background: var(--g, var(--dq-signal));
+    color: var(--dq-on-signal);
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  h1 {
+    margin-top: 0.4rem;
+    font-family: var(--dq-display);
+    font-size: var(--sl-text-h1);
+    line-height: 1.12;
+    font-weight: 700;
+    color: var(--sl-color-white);
+    text-wrap: balance;
+  }
+  .g-a { --g: var(--dq-g-a); }
+  .g-b { --g: var(--dq-g-b); }
+  .g-c { --g: var(--dq-g-c); }
+  .g-d { --g: var(--dq-g-d); }
+  .g-e { --g: var(--dq-g-e); }
+</style>
