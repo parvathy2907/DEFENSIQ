@@ -1,0 +1,121 @@
+---
+title: "Problem Statement and Objectives"
+description: "Formal definition of the research problem, operational objectives, project scope, assumptions, and expected contributions."
+---
+
+import PageIntro from '../../../components/PageIntro.astro';
+
+<PageIntro 
+  subtitle="Formal definition of the research problem, operational objectives, project scope, assumptions, and expected contributions." 
+/>
+
+This section defines the research problem, objectives, scope, assumptions, and expected contributions of the proposed ransomware defense optimization framework. The project combines dynamic malware analysis, standardized attack–defense mapping, signature impact quantification, LLM-based residual-severity estimation, and evolutionary optimization to support defense selection.
+
+---
+
+## Problem Statement
+
+Ransomware attacks continue to evolve, employing different behaviors and evasion techniques that make it difficult to select an effective defense strategy. Although dynamic malware analysis helps identify malicious behaviors, analyzing each behavior and evaluating every possible defense combination can require considerable effort. Furthermore, a defensive mechanism that is effective against one attack behavior may not adequately mitigate another.
+
+The main problem addressed by this project is the difficulty of systematically evaluating attack–defense combinations and identifying effective defense strategies from observed ransomware behavior. A structured approach is required to extract behavioral signatures, associate them with relevant defensive mechanisms, estimate the severity that may remain after applying a defense, and use these estimates to guide defense selection.
+
+<div class="academic-callout" style="margin: 1.5rem 0; padding: 1.25rem 1.5rem; border-left: 4px solid var(--sl-color-accent); background: var(--academic-card-bg); border: 1px solid var(--academic-card-border); border-left-width: 4px; border-left-color: var(--sl-color-accent); border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+  <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--sl-color-accent); margin-bottom: 0.4rem;">
+    Problem Statement (as registered in Phase 1)
+  </div>
+  <p style="margin: 0; font-size: 1.05rem; font-weight: 600; color: var(--sl-color-gray-1); line-height: 1.5;">
+    To develop an evolutionary decision-making framework capable of dynamically identifying optimal defense strategies against evolving ransomware attacks.
+  </p>
+</div>
+
+In this statement, **optimal** means the defense combination with the highest fitness found by the search under the fitness function defined on the [CCEA page](/methodology/ccea/). The search is heuristic, so the result is the best combination found, not a proven global optimum.
+
+The proposed framework uses Cuckoo Sandbox to obtain behavioral evidence, MITRE ATT&CK to characterize adversarial techniques, and MITRE D3FEND mappings to identify candidate defensive mechanisms. A signature impact quantification component assigns and refines behavior-related severity scores, while an LLM estimates the residual severity (RS) of individual attack–defense combinations. These estimates are subsequently used by a Cooperative Co-Evolutionary Algorithm (CCEA) to evaluate candidate defense combinations and identify a recommended strategy.
+
+---
+
+## Research Objectives
+
+### Objective 1: Construct a comprehensive attack dataset capturing ransomware behavior patterns
+
+1. Analyze ransomware samples in an automated testbed environment and generate comprehensive analysis reports.
+2. Parse the analysis reports to understand the ransomware attack plans in terms of the signatures triggered by each sample.
+
+### Objective 2: Develop a corresponding defense dataset based on existing defense mechanisms
+
+1. Investigate the attack plans to identify the Tactics, Techniques, and Procedures (TTPs) they use through malware forensic analysis.
+2. Systematically map existing defense mechanisms to the corresponding adversarial techniques using the MITRE ATT&CK and D3FEND knowledge bases.
+
+### Objective 3: Develop an evolutionary decision-making framework for selecting optimal defense strategies against dynamically evolving ransomware attacks
+
+1. Represent attack plans and defense mechanisms as inputs to the decision-making framework.
+2. Design and develop a co-evolutionary method that maps defense mechanisms against specific attack patterns.
+
+---
+
+## Scope of the Work
+
+The project focuses on ransomware-related behavior analysis and defense optimization. Its scope includes the following components:
+
+1. **Malware analysis:** Malware samples are analyzed using a virtual-machine-based Cuckoo Sandbox environment. The analysis reports provide behavioral evidence, triggered signatures, and relevant execution information.
+2. **Behavioral signature processing:** The framework extracts and processes signature information from the generated reports. The analysis is limited to behaviors observed or recorded during the configured sandbox execution.
+3. **Attack and defense mapping:** Observed behaviors are associated with MITRE ATT&CK tactics, techniques, and sub-techniques. Candidate defensive mechanisms are identified through the project's ATT&CK–D3FEND mapping process.
+4. **Severity assessment:** Signature impact quantification and LLM-based residual-severity estimation provide severity-related information for attack–defense evaluation. The quality of these estimates is assessed using the available reference labels and evaluation metrics.
+5. **Defense optimization:** CCEA evaluates combinations of candidate defenses using the project's fitness function and search configuration. The output is a recommended defense combination for the evaluated attack scenario.
+6. **Experimental evaluation:** The evaluation covers the tested dataset, configured analysis environment, selected model, optimization parameters, and the case studies used in the experiments. Conclusions are limited to the evaluated samples and conditions.
+
+The project is intended to support the analysis and selection of defensive strategies. It does not claim to replace established malware detection, endpoint protection, backup, or incident-response mechanisms. Its results depend on the completeness of observed behavior, the quality of attack–defense mappings, the accuracy of residual-severity estimates, and the search configuration.
+
+---
+
+## Assumptions and Boundaries
+
+The framework operates under the following assumptions and constraints:
+
+- **Controlled analysis environment:** Malware samples are analyzed in an isolated virtual-machine-based environment. The resulting reports represent the behavior observed during the configured analysis, which may not capture every capability of a sample.
+- **Sample identification:** The documented dataset preparation process uses malware-source information, VirusTotal information, malware classification, and SHA-256-based duplicate removal. The final experimental dataset must be identified separately from the complete sample collection.
+- **Mapping quality:** ATT&CK and D3FEND mappings provide structured information for attack characterization and defense selection. The usefulness of the resulting recommendations depends on the correctness and relevance of those mappings.
+- **LLM estimates:** Residual severity is an estimated assessment rather than an automatically verified ground-truth value. Model outputs must be checked against the defined severity constraints and evaluated using reference data.
+- **Candidate defense availability:** The optimization process selects from the candidate defenses represented in the defense dataset. It cannot select a defense that is absent from the candidate pool.
+- **Optimization constraints:** CCEA operates within its configured generation limit, exploration and mutation probabilities, stopping criteria, and fitness calculation. Its output is the best candidate found under those conditions, not a mathematical guarantee of a globally optimal real-world defense strategy.
+- **Operational boundaries:** The study evaluates the framework using the configured datasets and experimental environment. The results should not be generalized automatically to every ransomware family, operating system, or production environment.
+
+---
+
+## Deliverables
+
+The Phase 1 review committed to three deliverables:
+
+1. **Ground-truth attack dataset:** analyzed samples, their triggered signatures, ATT&CK mappings and impact scores.
+2. **Ground-truth defense dataset:** the candidate D3FEND defenses for each signature, with the source of every mapping recorded.
+3. **Evolutionary framework** that recommends a defense combination for an observed attack.
+
+---
+
+## Expected Contributions
+
+The project is expected to make the following technical and research contributions:
+
+### 1. Integrated behavioral-analysis workflow
+
+A workflow that connects sandbox-generated malware behavior with signature extraction, attack characterization, defense mapping, severity assessment, and defense optimization.
+
+### 2. Structured attack–defense representation
+
+A dataset-based representation of observed attack signatures and candidate defensive mechanisms, using MITRE ATT&CK and the project's ATT&CK–D3FEND mapping process to organize the relationships.
+
+### 3. Signature impact quantification
+
+A severity-quantification component that uses initial signature scores and signature co-occurrence information to refine the representation of attack impact.
+
+### 4. LLM-based residual-severity assessment
+
+An approach for using an LLM to assess how a candidate defense may affect an observed attack behavior and estimate the residual severity of the attack–defense pair.
+
+### 5. Evolutionary defense selection
+
+A CCEA-based optimization component that evaluates candidate defense combinations using residual-severity estimates and a defined fitness function, reducing the need to enumerate every possible combination.
+
+### 6. Experimental evaluation
+
+An evaluation of the framework's severity-estimation and optimization components using quantitative metrics, representative attack scenarios, and before-and-after severity comparisons. The results are intended to identify strengths, limitations, and opportunities for further refinement.
