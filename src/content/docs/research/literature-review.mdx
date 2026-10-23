@@ -1,0 +1,344 @@
+---
+title: "Literature Review"
+description: "Comparative taxonomy of dynamic malware analysis, threat mapping, severity quantification, LLM assessment, and defense optimization."
+---
+
+import PageIntro from '../../../components/PageIntro.astro';
+import DataTable from '../../../components/DataTable.astro';
+import ReferenceItem from '../../../components/ReferenceItem.astro';
+
+<PageIntro 
+  subtitle="Comparative taxonomy and methodological synthesis of prior research across dynamic malware analysis, ATT&CK/D3FEND mapping, severity quantification, and evolutionary optimization." 
+/>
+
+Ransomware research spans dynamic malware analysis, early threat detection, behavioral feature selection, attack–defense mapping, severity quantification, and automated defense optimization. These research areas provide the foundations for the proposed framework, which combines behavioral evidence from Cuckoo Sandbox with MITRE ATT&CK–D3FEND mapping, LLM-based residual-severity estimation, and Cooperative Co-Evolutionary Algorithm (CCEA)-based defense selection.
+
+This review compares representative studies according to their methodology, primary research focus, and relevance to the present work. The objective is to identify how existing approaches contribute to ransomware analysis and defense, and to determine which parts of the attack–defense decision-making process remain to be addressed by the proposed framework.
+
+---
+
+## Comparative Literature Taxonomy
+
+<DataTable 
+  headers={["Publication", "Methodology", "Research Focus", "Limitation and Relevance to This Project"]}
+  caption="Table 2.1: Comparative literature matrix of dynamic malware analysis, ransomware detection, threat mapping, severity quantification, and defense optimization."
+>
+  <tr>
+    <td><strong>Al-Rimy et al. (2019)</strong> [3]<br/><span style="font-size:0.82em"><a href="https://doi.org/10.1016/j.future.2019.06.005" target="_blank" rel="noopener noreferrer">DOI ↗</a></span></td>
+    <td>Incremental bagging combined with enhanced semi-random subspace selection using runtime API-call traces.</td>
+    <td>Early detection of crypto-ransomware.</td>
+    <td><strong>Limitation (Phase 1 review):</strong> Performance depends on handcrafted behavioral features; limited adaptability to newly emerging variants in real-time environments.<br/><strong>Relevance to this project:</strong> Focuses on early detection and classification rather than estimating residual severity after applying specific defenses.</td>
+  </tr>
+  <tr>
+    <td><strong>Ramesh and Menen (2020)</strong> [4]<br/><span style="font-size:0.82em"><a href="https://doi.org/10.1016/j.dss.2020.113400" target="_blank" rel="noopener noreferrer">DOI ↗</a></span></td>
+    <td>Dynamic behavioral analysis using finite-state machines to represent ransomware execution patterns.</td>
+    <td>Detecting ransomware through system-state transitions and generic behavior patterns.</td>
+    <td><strong>Limitation (Phase 1 review):</strong> FSM models struggle with scalability and may fail to generalize to polymorphic or highly evasive ransomware behaviors.<br/><strong>Relevance to this project:</strong> Detection is the primary objective; the study does not directly provide the attack–defense severity assessment and defense-combination optimization workflow considered here.</td>
+  </tr>
+  <tr>
+    <td><strong>Hu et al. (2020)</strong> [5]<br/><span style="font-size:0.82em"><a href="https://doi.org/10.1109/TNSM.2020.2995713" target="_blank" rel="noopener noreferrer">DOI ↗</a></span></td>
+    <td>Evolutionary game-theoretic modeling of attacker–defender interactions.</td>
+    <td>Cybersecurity defense decision-making.</td>
+    <td><strong>Limitation (Phase 1 review):</strong> Does not provide a concrete early-stage detection mechanism or real-time implementation framework.<br/><strong>Relevance to this project:</strong> Provides a strategic decision-making foundation, but its game-theoretic formulation differs from the operational CCEA search and LLM-based residual-severity assessment implemented in this project.</td>
+  </tr>
+  <tr>
+    <td><strong>Urooj et al. (2021)</strong> [6]<br/><span style="font-size:0.82em"><a href="https://doi.org/10.1109/CRC50527.2021.9392548" target="_blank" rel="noopener noreferrer">DOI ↗</a></span></td>
+    <td>Adaptive detection using pre-encryption behavioral features.</td>
+    <td>Detecting crypto-ransomware before encryption causes substantial damage.</td>
+    <td><strong>Limitation (Phase 1 review):</strong> Detection accuracy is affected by limited data availability in very early attack stages.<br/><strong>Relevance to this project:</strong> Early-stage detection depends on the behavioral evidence available at the time of analysis; selecting an effective combination of defenses is a separate problem.</td>
+  </tr>
+  <tr>
+    <td><strong>Albulayhi and Al-Haija (2022)</strong> [7]<br/><span style="font-size:0.82em"><a href="https://doi.org/10.1109/CICN56167.2022.10008270" target="_blank" rel="noopener noreferrer">DOI ↗</a></span></td>
+    <td>Regression-based neural-network forecasting using historical malware and ransomware trends.</td>
+    <td>Predicting short-term malware and ransomware trends.</td>
+    <td><strong>Limitation (Phase 1 review):</strong> Forecasting-oriented approach; lacks precise early detection before encryption executes.<br/><strong>Relevance to this project:</strong> Forecasting future trends differs from evaluating the severity remaining for a specific attack–defense pair.</td>
+  </tr>
+  <tr>
+    <td><strong>Rehman et al. (2023)</strong> [8]<br/><span style="font-size:0.82em"><a href="https://doi.org/10.1007/978-981-99-5166-6_6" target="_blank" rel="noopener noreferrer">DOI ↗</a></span></td>
+    <td>Systematic literature review of ransomware detection methods and mitigation tools.</td>
+    <td>Synthesizing existing ransomware detection and mitigation research.</td>
+    <td><strong>Limitation (Phase 1 review):</strong> Does not propose or validate a new detection model; highlights gaps without experimental implementation.<br/><strong>Relevance to this project:</strong> A review provides an overview of existing approaches but does not itself implement the integrated analysis and defense-optimization workflow investigated here.</td>
+  </tr>
+  <tr>
+    <td><strong>Mohamed et al. (2024)</strong> [9]<br/><span style="font-size:0.82em"><a href="https://doi.org/10.48084/etasr.7092" target="_blank" rel="noopener noreferrer">DOI ↗</a></span></td>
+    <td>Enhanced Joint Mutual Information (JMI) feature selection combined with machine-learning classifiers.</td>
+    <td>Selecting relevant features for early ransomware detection.</td>
+    <td><strong>Limitation (Phase 1 review):</strong> Feature selection is computationally intensive and less adaptive to rapidly evolving ransomware behaviors.<br/><strong>Relevance to this project:</strong> Concentrates on feature selection and detection rather than estimating post-mitigation severity and optimizing defense combinations.</td>
+  </tr>
+  <tr>
+    <td><strong>Gazzan and Sheldon (2024)</strong> [10]<br/><span style="font-size:0.82em"><a href="https://doi.org/10.3390/info15040194" target="_blank" rel="noopener noreferrer">DOI ↗</a></span></td>
+    <td>Incremental mutual-information-based feature selection using manageable data batches.</td>
+    <td>Early ransomware detection when only limited data are available.</td>
+    <td><strong>Limitation (Phase 1 review):</strong> Focuses mainly on feature relevance; does not address deployment challenges in large-scale real-world systems.<br/><strong>Relevance to this project:</strong> Addresses the selection of relevant features; the effectiveness of candidate defenses and their combined impact are outside its primary focus.</td>
+  </tr>
+  <tr>
+    <td><strong>Gulmez et al. (2024)</strong> [11]<br/><span style="font-size:0.82em"><a href="https://doi.org/10.1016/j.cose.2024.103703" target="_blank" rel="noopener noreferrer">DOI ↗</a></span></td>
+    <td>Dynamic behavioral analysis using API sequences, dynamic-link libraries, mutexes, and explainable deep learning.</td>
+    <td>XRan: explainable ransomware detection through dynamic analysis.</td>
+    <td><strong>Limitation (Phase 1 review):</strong> Depends on resource-intensive dynamic analysis and centers on detection only, without early-stage assistance or adaptive defense decision support.<br/><strong>Relevance to this project:</strong> Focuses on detection and behavioral classification rather than closed-loop residual-severity assessment and evolutionary defense selection.</td>
+  </tr>
+  <tr>
+    <td><strong>Lee et al. (2025)</strong> [12]<br/><span style="font-size:0.82em"><a href="https://doi.org/10.3390/s25082406" target="_blank" rel="noopener noreferrer">DOI ↗</a></span></td>
+    <td>Machine-learning-based analysis for detecting ransomware-infected files affected by format-preserving encryption.</td>
+    <td>File-level ransomware detection under techniques that can evade conventional detection methods.</td>
+    <td><strong>Limitation (Phase 1 review):</strong> Focuses on file-level detection; early behavioral detection before encryption is not fully addressed.<br/><strong>Relevance to this project:</strong> Addresses a specific file-detection challenge rather than broader behavioral analysis and defense-combination optimization.</td>
+  </tr>
+  <tr>
+    <td><strong>Egele et al. (2012)</strong> [2]<br/><span style="font-size:0.82em"><a href="https://doi.org/10.1145/2089125.2089126" target="_blank" rel="noopener noreferrer">DOI ↗</a></span></td>
+    <td>Survey of automated dynamic malware-analysis techniques and tools.</td>
+    <td>Understanding methods for observing and analyzing malware during execution.</td>
+    <td><strong>Role in this project:</strong> Establishes the foundations of dynamic analysis but does not address the project's LLM-based severity assessment or CCEA-based defense selection.</td>
+  </tr>
+  <tr>
+    <td><strong>Strom et al. (2020)</strong> [13]<br/><span style="font-size:0.82em"><a href="https://www.mitre.org/news-insights/publication/mitre-attck-design-and-philosophy" target="_blank" rel="noopener noreferrer">MITRE ↗</a></span></td>
+    <td>Description of the design philosophy, structure, and maintenance of MITRE ATT&CK.</td>
+    <td>Standardizing the representation of adversarial tactics and techniques.</td>
+    <td><strong>Role in this project:</strong> ATT&CK characterizes adversarial behavior; mapping a technique to a defense and estimating the effectiveness of that defense require additional analysis.</td>
+  </tr>
+  <tr>
+    <td><strong>Kaloroumakis and Smith (2021)</strong> [14]<br/><span style="font-size:0.82em"><a href="https://d3fend.mitre.org/resources/D3FEND.pdf" target="_blank" rel="noopener noreferrer">Report ↗</a></span></td>
+    <td>Semantic knowledge graph of cybersecurity countermeasures and their relationships.</td>
+    <td>Representing defensive techniques and their capabilities in a structured manner through MITRE D3FEND.</td>
+    <td><strong>Role in this project:</strong> D3FEND supplies a structured vocabulary and relationships, but does not itself assign numerical residual-severity scores or prioritize defenses by effectiveness.</td>
+  </tr>
+  <tr>
+    <td><strong>Rohini et al. (2024)</strong> [15]<br/><span style="font-size:0.82em"><a href="https://doi.org/10.1016/j.cose.2024.103735" target="_blank" rel="noopener noreferrer">DOI ↗</a></span></td>
+    <td>Two-phase signature impact scoring: banding by severity and frequency, then refinement using mutual information among co-occurring signatures.</td>
+    <td>MAGIC: quantifying the impact of malware behaviors associated with triggered signatures.</td>
+    <td><strong>Role in this project:</strong> Provides an impact-quantification foundation; the present framework uses severity-related information in a subsequent attack–defense assessment and optimization process.</td>
+  </tr>
+  <tr>
+    <td><strong>Ma et al. (2019)</strong> [17]<br/><span style="font-size:0.82em"><a href="https://doi.org/10.1109/TEVC.2018.2868770" target="_blank" rel="noopener noreferrer">DOI ↗</a></span></td>
+    <td>Survey of cooperative co-evolutionary algorithms, including problem decomposition, collaboration, and fitness evaluation.</td>
+    <td>Evolutionary optimization of complex problems through cooperative subpopulations.</td>
+    <td><strong>Role in this project:</strong> Establishes general CCEA principles but does not define the specific ransomware defense representation, residual-severity evaluation, or fitness function used in this project.</td>
+  </tr>
+  <tr>
+    <td><strong>Bartz-Beielstein et al. (2014)</strong> [16]<br/><span style="font-size:0.82em">WIREs DMKD, vol. 4</span></td>
+    <td>Overview of evolutionary algorithms: representation, selection, variation (crossover and mutation) and their application domains.</td>
+    <td>General foundations of evolutionary computation.</td>
+    <td><strong>Role in this project:</strong> The source cited in Phase 1 for the evolutionary operators; the Phase 2 search adapts these ideas to per-pool exploration and mutation.</td>
+  </tr>
+  <tr>
+    <td><strong>Jaffal et al. (2025)</strong> [18]<br/><span style="font-size:0.82em"><a href="https://doi.org/10.3390/ai6090216" target="_blank" rel="noopener noreferrer">DOI ↗</a></span></td>
+    <td>Survey of LLM applications, vulnerabilities, and defense techniques in cybersecurity.</td>
+    <td>Reviewing the uses and challenges of LLMs in security-related tasks.</td>
+    <td><strong>Role in this project:</strong> Provides a broad view of cybersecurity LLMs; task-specific residual-severity estimation still requires a defined input representation, reference labels, and empirical evaluation.</td>
+  </tr>
+</DataTable>
+
+<div class="academic-callout" style="margin: 1.5rem 0; padding: 1rem 1.25rem; border-left: 4px solid var(--sl-color-tech); background: var(--academic-card-bg); border: 1px solid var(--academic-card-border); border-left-width: 4px; border-left-color: var(--sl-color-tech); border-radius: 6px;">
+  <p style="margin: 0; font-size: 0.85rem; color: var(--sl-color-gray-3); line-height: 1.5;">
+    <strong>Interpretation Note:</strong> The limitations summarized in Table 2.1 describe the relevance of each study's operational scope to this project. They should not be interpreted as claims that the original authors failed to achieve their stated research objectives.
+  </p>
+</div>
+
+---
+
+## Key Observations and Synthesis
+
+### 1. Dynamic Malware Analysis Provides Behavioral Evidence
+Dynamic malware analysis allows researchers to observe program execution and collect evidence such as API-call sequences, process activity, and file-system modifications [2]. Studies such as Al-Rimy et al. [3] and Ramesh and Menen [4] demonstrate how behavioral information can support ransomware detection.
+
+In the proposed framework, Cuckoo Sandbox provides the execution reports from which triggered behavioral signatures are extracted. These signatures serve as structured inputs for subsequent attack characterization and severity assessment. However, the behaviors recorded in a sandbox represent the activity observed during a particular execution, not necessarily every capability of the analyzed sample.
+
+### 2. Detection and Defense Optimization Address Different Problems
+Several reviewed studies focus on detecting ransomware, identifying relevant behavioral features, or forecasting malware trends [3], [4], [6], [7], [9]–[12]. These functions are important, but a successful detection result does not automatically determine which defensive mechanisms are appropriate or how much risk remains after applying them.
+
+The present project addresses the subsequent decision-making problem: given an observed attack behavior and a candidate defense, estimate the residual severity and use that assessment to compare possible defense combinations.
+
+### 3. ATT&CK and D3FEND Provide Complementary Representations
+MITRE ATT&CK provides a structured representation of adversarial tactics and techniques [13]. MITRE D3FEND provides a structured vocabulary of defensive techniques, artifacts, and relationships [14].
+
+These resources help organize attack and defense information into a common analytical framework. However, a mapping relationship alone does not establish that a defense completely mitigates an attack. D3FEND explicitly distinguishes the description of countermeasure capabilities from the assessment and prioritization of their effectiveness. Consequently, the proposed framework requires a separate evaluation stage that considers the observed attack behavior and the defensive mechanism when estimating residual severity.
+
+### 4. Impact Quantification Supports Attack-Severity Assessment
+The MAGIC approach scores signatures in two phases: it first places each signature in a severity band using its severity and frequency, then refines the score using mutual information among signatures that occur together [15]. This is relevant because individual triggered signatures may represent different aspects of a malware sample's behavior, and their significance may depend on the behaviors observed together.
+
+The project incorporates signature impact quantification to provide severity-related inputs to the attack–defense evaluation process. The subsequent LLM-based assessment addresses a different question: how much severity may remain when a particular defensive mechanism is considered.
+
+### 5. LLM-Based Assessment Requires Task-Specific Evaluation
+Large Language Models have been investigated for a range of cybersecurity applications, including security analysis and threat-intelligence-related tasks [18]. Their ability to interpret structured behavioral evidence makes them candidates for reasoning about attack–defense relationships.
+
+However, general cybersecurity reasoning capability does not establish that a model will estimate residual severity accurately. The model must receive appropriate evidence, produce valid structured outputs, and be evaluated against reference labels. For this reason, the project treats LLM-based residual-severity estimation as an empirical component whose errors and limitations must be measured.
+
+### 6. Evolutionary Optimization Addresses the Combinatorial Search Challenge
+Cooperative co-evolutionary algorithms decompose a complex optimization problem into cooperating subproblems and evolve candidate solutions through separate populations [17]. This provides a foundation for searching problems in which the quality of a complete solution depends on multiple interacting components.
+
+In this project, the candidate defense combination is evaluated using residual-severity estimates and the defined fitness function. CCEA searches the candidate space and retains promising combinations rather than explicitly enumerating every possible configuration. The quality of the selected defense strategy consequently depends on the candidate defense pool, the RS estimates, the fitness formulation, and the search configuration.
+
+---
+
+## Research Gap and Positioning of the Proposed Work
+
+The reviewed studies establish important foundations in ransomware behavior analysis, early detection, feature selection, severity quantification, standardized threat mapping, LLM-assisted cybersecurity, and evolutionary optimization. Within this reviewed set, these capabilities are addressed primarily as separate research tasks.
+
+The problem motivating this project is the need to connect these capabilities in a single decision-support workflow. Specifically, the framework combines:
+
+1. **Cuckoo Sandbox-based dynamic malware analysis** and behavioral-signature extraction.
+2. **ATT&CK-based characterization** of observed adversarial behavior.
+3. **ATT&CK–D3FEND mapping** to identify candidate defensive mechanisms.
+4. **Signature impact quantification** to establish severity-related information.
+5. **LLM-based residual-severity estimation** for individual attack–defense pairs.
+6. **CCEA-based evaluation and selection** of candidate defense combinations.
+
+The central research question is whether residual-severity estimates can provide useful evaluation signals for an evolutionary search over candidate defenses, and whether the resulting defense combinations reduce the Malware Severity Score from MSS<sub>before</sub> = IS to MSS<sub>after</sub> = RA(C*), as defined on the [CCEA page](/methodology/ccea/), and whether they outperform a greedy baseline under the project's experimental conditions.
+
+The framework therefore differs from detection-only approaches by focusing on the relationship between observed attack behavior, defensive mechanisms, remaining severity, and defense-combination selection. Its effectiveness must be established through the evaluation of RS predictions and the comparison of optimized defense combinations against appropriate baselines.
+
+---
+
+## References
+
+
+  <ReferenceItem 
+    number={2} 
+    authors="M. Egele, T. Scholte, E. Kirda, and C. Kruegel" 
+    title="A survey on automated dynamic malware-analysis techniques and tools" 
+    venue="ACM Computing Surveys, vol. 44, no. 2, Art. no. 6, pp. 1–42" 
+    year={2012} 
+    doi="10.1145/2089125.2089126" 
+  />
+
+  <ReferenceItem 
+    number={3} 
+    authors="B. A. S. Al-Rimy, M. A. Maarof, and S. Z. M. Shaid" 
+    title="Crypto-ransomware early detection model using novel incremental bagging with enhanced semi-random subspace selection" 
+    venue="Future Generation Computer Systems, vol. 101, pp. 476–491" 
+    year={2019} 
+    doi="10.1016/j.future.2019.06.005" 
+  />
+
+  <ReferenceItem 
+    number={4} 
+    authors="G. Ramesh and A. Menen" 
+    title="Automated dynamic approach for detecting ransomware using finite-state machine" 
+    venue="Decision Support Systems, vol. 138, Art. no. 113400" 
+    year={2020} 
+    doi="10.1016/j.dss.2020.113400" 
+  />
+
+  <ReferenceItem 
+    number={5} 
+    authors="H. Hu, Y. Liu, C. Chen, H. Zhang, and Y. Liu" 
+    title="Optimal decision making approach for cyber security defense using evolutionary game" 
+    venue="IEEE Transactions on Network and Service Management, vol. 17, no. 3, pp. 1683–1700" 
+    year={2020} 
+    doi="10.1109/TNSM.2020.2995713" 
+  />
+
+  <ReferenceItem 
+    number={6} 
+    authors="U. Urooj, M. A. B. Maarof, and B. A. S. Al-Rimy" 
+    title="A proposed adaptive pre-encryption crypto-ransomware early detection model" 
+    venue="Proc. 3rd International Cyber Resilience Conference (CRC)" 
+    year={2021} 
+    doi="10.1109/CRC50527.2021.9392548" 
+  />
+
+  <ReferenceItem 
+    number={7} 
+    authors="K. Albulayhi and Q. A. Al-Haija" 
+    title="Early-stage malware and ransomware forecasting in the short-term future using regression-based neural network technique" 
+    venue="Proc. 14th International Conference on Computational Intelligence and Communication Networks (CICN), pp. 735–742" 
+    year={2022} 
+    doi="10.1109/CICN56167.2022.10008270" 
+  />
+
+  <ReferenceItem 
+    number={8} 
+    authors="M. U. Rehman, R. Akbar, M. Omar, and A. R. Gilal" 
+    title="A systematic literature review of ransomware detection methods and tools for mitigating potential attacks" 
+    venue="Proc. International Conference on Computing and Informatics, pp. 80–95" 
+    year={2023} 
+    doi="10.1007/978-981-99-5166-6_6" 
+  />
+
+  <ReferenceItem 
+    number={9} 
+    authors="T. M. H. Mohamed, B. A. S. Al-Rimy, and S. A. Almalki" 
+    title="A ransomware early detection model based on an enhanced joint mutual information feature selection method" 
+    venue="Engineering, Technology & Applied Science Research, vol. 14, no. 4, pp. 15400–15407" 
+    year={2024} 
+    doi="10.48084/etasr.7092" 
+  />
+
+  <ReferenceItem 
+    number={10} 
+    authors="M. Gazzan and F. T. Sheldon" 
+    title="An incremental mutual information-selection technique for early ransomware detection" 
+    venue="Information, vol. 15, no. 4, Art. no. 194" 
+    year={2024} 
+    doi="10.3390/info15040194" 
+  />
+
+  <ReferenceItem 
+    number={11} 
+    authors="S. Gulmez, A. Gorgulu Kakisim, and I. Sogukpinar" 
+    title="XRan: Explainable deep learning-based ransomware detection using dynamic analysis" 
+    venue="Computers & Security, vol. 139, Art. no. 103703" 
+    year={2024} 
+    doi="10.1016/j.cose.2024.103703" 
+  />
+
+  <ReferenceItem 
+    number={12} 
+    authors="J. Lee, J. Kim, H. Jeong, and K. Lee" 
+    title="A machine learning-based ransomware detection method for attackers’ neutralization techniques using format-preserving encryption" 
+    venue="Sensors, vol. 25, no. 8, Art. no. 2406" 
+    year={2025} 
+    doi="10.3390/s25082406" 
+  />
+
+  <ReferenceItem 
+    number={13} 
+    authors="B. E. Strom, A. Applebaum, D. P. Miller, K. C. Nickels, A. G. Pennington, and C. B. Thomas" 
+    title="MITRE ATT&CK: Design and philosophy" 
+    venue="MITRE Corporation Technical Report" 
+    year={2020} 
+    url="https://www.mitre.org/news-insights/publication/mitre-attck-design-and-philosophy" 
+  />
+
+  <ReferenceItem 
+    number={14} 
+    authors="P. E. Kaloroumakis and M. J. Smith" 
+    title="Toward a knowledge graph of cybersecurity countermeasures" 
+    venue="The MITRE Corporation" 
+    year={2021} 
+    url="https://d3fend.mitre.org/resources/D3FEND.pdf" 
+  />
+
+  <ReferenceItem 
+    number={15} 
+    authors="S. Rohini, G. Ramesh, and A. R. Nair" 
+    title="MAGIC: Malware behaviour analysis and impact quantification through signature co-occurrence and regression" 
+    venue="Computers & Security, vol. 139, Art. no. 103735" 
+    year={2024} 
+    doi="10.1016/j.cose.2024.103735" 
+  />
+
+  <ReferenceItem 
+    number={16} 
+    authors="T. Bartz-Beielstein, J. Branke, J. Mehnen, and O. Mersmann" 
+    title="Evolutionary algorithms" 
+    venue="WIREs Data Mining and Knowledge Discovery, vol. 4, pp. 178–195" 
+    year={2014} 
+  />
+
+  <ReferenceItem 
+    number={17} 
+    authors="X. Ma et al." 
+    title="A survey on cooperative co-evolutionary algorithms" 
+    venue="IEEE Transactions on Evolutionary Computation, vol. 23, no. 3, pp. 421–441" 
+    year={2019} 
+    doi="10.1109/TEVC.2018.2868770" 
+  />
+
+  <ReferenceItem 
+    number={18} 
+    authors="N. O. Jaffal, M. Alkhanafseh, and D. Mohaisen" 
+    title="Large language models in cybersecurity: A survey of applications, vulnerabilities, and defense techniques" 
+    venue="AI, vol. 6, no. 9, Art. no. 216" 
+    year={2025} 
+    doi="10.3390/ai6090216" 
+  />

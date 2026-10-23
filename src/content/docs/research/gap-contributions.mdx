@@ -1,0 +1,228 @@
+---
+title: "Research Gap and Contributions"
+description: "Identification of explicit research gaps in ransomware defense literature, motivation for the unified workflow, and principal contributions."
+---
+
+import PageIntro from '../../../components/PageIntro.astro';
+import DataTable from '../../../components/DataTable.astro';
+
+<PageIntro 
+  subtitle="Identification of research challenges motivating the evolutionary defense optimization framework, detailed gap analysis, and itemized scientific contributions." 
+/>
+
+This section identifies the research challenges that motivate the proposed ransomware defense optimization framework. It explains how the project connects dynamic malware analysis, standardized attack–defense mapping, signature impact quantification, LLM-based residual-severity estimation, and evolutionary optimization into a single workflow.
+
+---
+
+## From Phase 1 to Phase 2: How the Gap Moved
+
+The Phase 1 review (Panel Review 2, 30 March 2026) identified gaps in ransomware **detection**:
+
+- The need to handle dynamic adaptation in early-detection models to combat evolving ransomware.
+- The need to refine existing models to minimize false positives while still identifying ransomware accurately.
+- The need for an effective method to identify stealthy variants that evade traditional detection.
+- The need for comprehensive early-detection approaches that consider a wide range of indicators and behaviors.
+
+### Challenges noted in Phase 1
+
+- Rapidly evolving ransomware variants [8].
+- Evasive malware techniques [11].
+- Fileless and stealthy attacks.
+- The complexity of early detection [6].
+- The lack of adaptive defense mechanisms.
+
+### Why Phase 2 focuses on defense selection
+
+The last challenge, the lack of adaptive defense mechanisms, is the one the reviewed literature leaves most open. Every study in the [literature review](/research/literature-review/) ends once ransomware has been detected or forecast; none of them recommends which defenses to apply afterwards. Phase 2 therefore treats detection as an input and focuses on the next decision: given an observed behavior, which defenses should be applied, and how much severity will remain? The four gaps below are the research questions that follow from that shift.
+
+---
+
+## Research Gaps
+
+Existing research has contributed methods for ransomware detection, behavioral analysis, severity quantification, threat characterization, and defense optimization. However, integrating these capabilities into a workflow that evaluates individual attack–defense pairs and selects effective defense combinations remains the central challenge addressed by this project.
+
+### Gap 1: Disconnect Between Threat Modeling and Defense Evaluation
+
+MITRE ATT&CK provides a structured representation of adversarial tactics and techniques, while MITRE D3FEND organizes defensive techniques and their relationships to digital artifacts [13], [14]. These resources support standardized attack–defense mapping, but identifying a candidate defense does not by itself establish how effectively it mitigates a particular observed behavior.
+
+The challenge addressed in this project is to connect sandbox-generated behavioral signatures and ATT&CK techniques with candidate D3FEND defenses, and then assess the likely effect of each defense on the corresponding attack behavior.
+
+<div class="academic-callout" style="margin: 1rem 0; padding: 1rem 1.25rem; border-left: 4px solid var(--sl-color-accent); background: var(--academic-card-bg); border: 1px solid var(--academic-card-border); border-left-width: 4px; border-left-color: var(--sl-color-accent); border-radius: 6px;">
+  <strong style="color: var(--sl-color-accent); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.35rem;">How this project addresses it</strong>
+  <p style="margin: 0; font-size: 0.925rem; color: var(--sl-color-gray-2); line-height: 1.55;">
+    The framework integrates behavioral-signature extraction, ATT&CK–D3FEND mapping, and attack–defense evaluation. The mapping stage identifies candidate defenses, while the subsequent LLM-based assessment estimates residual severity for individual attack–defense pairs.
+  </p>
+</div>
+
+### Gap 2: Connecting Signature Impact Quantification With Residual Severity
+
+Existing research has investigated methods for quantifying malware impact. The MAGIC approach, for example, uses signature co-occurrence and mutual-information-based refinement to improve the representation of behavioral impact [15]. However, an estimate of a signature's impact and an estimate of the severity remaining after applying a defense address different questions.
+
+The challenge is to use severity-related information from observed malware behavior in conjunction with an assessment of defensive effectiveness. The initial impact score alone does not establish whether a particular defense prevents, restricts, detects, or leaves the attack behavior possible.
+
+<div class="academic-callout" style="margin: 1rem 0; padding: 1rem 1.25rem; border-left: 4px solid var(--sl-color-accent); background: var(--academic-card-bg); border: 1px solid var(--academic-card-border); border-left-width: 4px; border-left-color: var(--sl-color-accent); border-radius: 6px;">
+  <strong style="color: var(--sl-color-accent); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.35rem;">How this project addresses it</strong>
+  <p style="margin: 0; font-size: 0.925rem; color: var(--sl-color-gray-2); line-height: 1.55;">
+    The framework incorporates signature impact quantification and uses the resulting severity-related information alongside LLM-based residual-severity estimates. This connects the assessment of individual attack behaviors to the fitness evaluation used during defense optimization.
+  </p>
+</div>
+
+### Gap 3: Efficient Selection of Defense Combinations
+
+Evolutionary algorithms and cooperative co-evolutionary methods provide ways to search complex optimization spaces without explicitly enumerating every possible solution [5], [17]. In ransomware defense, each observed signature may have multiple candidate defensive mechanisms, and the quality of a complete defense combination depends on the estimated outcomes of its constituent attack–defense pairs.
+
+The challenge is to evaluate candidate combinations efficiently when the number of possible configurations becomes large. A defense that is useful for one behavior may not be the most suitable choice for another, making systematic combination-level evaluation necessary.
+
+<div class="academic-callout" style="margin: 1rem 0; padding: 1rem 1.25rem; border-left: 4px solid var(--sl-color-accent); background: var(--academic-card-bg); border: 1px solid var(--academic-card-border); border-left-width: 4px; border-left-color: var(--sl-color-accent); border-radius: 6px;">
+  <strong style="color: var(--sl-color-accent); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.35rem;">How this project addresses it</strong>
+  <p style="margin: 0; font-size: 0.925rem; color: var(--sl-color-gray-2); line-height: 1.55;">
+    The framework uses CCEA to generate candidate defense combinations, evaluate them using the project's fitness function, and retain promising solutions across successive generations. This provides an evolutionary search strategy for defense selection. It does not assume that every possible combination is evaluated or that the returned candidate is guaranteed to be globally optimal.
+  </p>
+</div>
+
+### Gap 4: Reliability of LLM-Based Residual-Severity Estimation
+
+LLMs can interpret structured cybersecurity evidence and generate assessments of attack–defense relationships. However, a plausible explanation does not necessarily establish that a predicted residual-severity value is correct. Inconsistent outputs, insufficient evidence, or incorrect assumptions about defensive capabilities may affect the quality of an assessment.
+
+For the proposed framework, the important research challenge is therefore to measure whether LLM-generated residual-severity estimates are sufficiently consistent and accurate for use as inputs to an optimization algorithm.
+
+<div class="academic-callout" style="margin: 1rem 0; padding: 1rem 1.25rem; border-left: 4px solid var(--sl-color-accent); background: var(--academic-card-bg); border: 1px solid var(--academic-card-border); border-left-width: 4px; border-left-color: var(--sl-color-accent); border-radius: 6px;">
+  <strong style="color: var(--sl-color-accent); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.35rem;">How this project addresses it</strong>
+  <p style="margin: 0; font-size: 0.925rem; color: var(--sl-color-gray-2); line-height: 1.55;">
+    The framework uses structured inputs and outputs for attack–defense assessment and evaluates predicted residual severity against reference labels. Its evaluation includes Quadratic Weighted Kappa (QWK), normalized mean absolute error, exact-match accuracy, tolerance accuracy, and macro-averaged F1 for the mitigation labels. These measures provide different perspectives on prediction agreement and error; they do not eliminate model uncertainty.
+  </p>
+</div>
+
+### Summary of the Research Gaps
+
+<DataTable 
+  headers={["Research Gap", "Core Challenge", "Corresponding Project Component"]}
+  caption="Table 2.2: Summary of research gaps, operational challenges, and addressed framework components."
+>
+  <tr>
+    <td><strong>Attack–Defense Evaluation</strong></td>
+    <td>Mapping a technique to a candidate defense does not establish its effectiveness.</td>
+    <td>ATT&CK–D3FEND mapping and LLM assessment</td>
+  </tr>
+  <tr>
+    <td><strong>Impact and Residual Severity</strong></td>
+    <td>Initial behavior impact does not directly represent post-mitigation severity.</td>
+    <td>Signature impact quantification and RS estimation</td>
+  </tr>
+  <tr>
+    <td><strong>Defense-Combination Search</strong></td>
+    <td>Large candidate spaces make exhaustive evaluation impractical.</td>
+    <td>CCEA-based optimization</td>
+  </tr>
+  <tr>
+    <td><strong>LLM Reliability</strong></td>
+    <td>Severity estimates require validation before being used for optimization.</td>
+    <td>Structured-output validation and benchmark evaluation</td>
+  </tr>
+</DataTable>
+
+<p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin-top: 0.75rem;">
+  These gaps describe the specific problems motivating the proposed integration. They should not be interpreted as claims that earlier research lacks attack mapping, impact quantification, evolutionary algorithms, or LLM evaluation individually.
+</p>
+
+---
+
+## Motivation for the Proposed Approach
+
+The motivation for this framework is to provide a systematic connection between observed ransomware behavior and the selection of defensive mechanisms. The project brings together components that address different stages of this decision-making process.
+
+First, Cuckoo Sandbox supplies behavioral reports and triggered signatures from controlled malware execution. These reports are parsed to extract the evidence required to characterize observed attack behavior. Second, MITRE ATT&CK is used to organize the identified behaviors into standardized tactics, techniques, and sub-techniques. The project's ATT&CK–D3FEND mapping process then identifies candidate defensive mechanisms relevant to those techniques.
+
+Third, signature impact quantification provides severity-related scores, incorporating signature co-occurrence and mutual-information-based refinement. An LLM evaluates individual attack–defense pairs and estimates the residual severity that may remain after considering a candidate defense. Finally, CCEA uses these estimates to evaluate and compare defense combinations through the project's fitness function.
+
+This integrated approach is motivated by three considerations:
+
+1. **Structured evidence:** Decisions are based on observed behavioral information and standardized attack–defense mappings rather than relying solely on signature names or unstructured descriptions.
+2. **Context-sensitive assessment:** The residual-severity stage considers the relationship between an observed attack behavior and a candidate defense instead of assigning a fixed severity reduction to every defense category.
+3. **Scalable search:** CCEA searches the defense-combination space iteratively, providing a practical alternative to exhaustive enumeration when many signatures and candidate defenses are involved.
+
+The overall motivation is to make defense selection more systematic, measurable, and adaptable to the attack scenarios represented in the dataset. The effectiveness of the approach must be established through empirical evaluation of both residual-severity predictions and the defense combinations selected by the optimization process.
+
+---
+
+## Key Research Contributions
+
+The project contributes an integrated framework for ransomware defense analysis and optimization. Its principal contributions are as follows:
+
+### 1. Integration of Dynamic Malware Analysis With Behavioral Signature Processing
+The framework processes Cuckoo Sandbox reports to identify triggered signatures and relevant execution evidence. This establishes the behavioral input used by subsequent attack characterization and defense assessment.
+
+### 2. Standardized Attack–Defense Representation
+The framework connects observed behavioral signatures with MITRE ATT&CK techniques and identifies candidate defensive mechanisms through ATT&CK–D3FEND mappings. This provides a structured representation of the relationship between observed attacks and available defenses.
+
+### 3. Integration of Signature Impact Quantification and Residual Severity
+The framework incorporates the project's signature impact quantification approach and uses severity-related information in conjunction with LLM-based residual-severity estimation. This distinguishes the estimated impact of an observed behavior from the estimated severity remaining when a defensive mechanism is considered.
+
+### 4. LLM-Based Attack–Defense Assessment
+The framework uses an LLM to evaluate individual attack–defense pairs using the supplied behavioral and defense information. The resulting residual-severity estimates are used as quantitative inputs to the defense-combination optimization process. The quality of these estimates is assessed using reference labels and defined evaluation metrics.
+
+### 5. CCEA-Based Defense-Combination Optimization
+The framework formulates defense selection as a search over candidate combinations. CCEA generates and evaluates combinations using the project's severity-based fitness function and retains promising candidates across generations. This avoids the need to enumerate the full combination space explicitly.
+
+### 6. Experimental Evaluation of Severity Estimation and Optimization
+The residual-severity component is evaluated with QWK, normalized MAE, exact-match accuracy, tolerance accuracy and macro-averaged F1 for the mitigation labels. The defense-optimization component is evaluated with the Malware Severity Score before and after the recommended defenses, a comparison against a greedy baseline using the same pools and RS source, and paired statistical testing (Shapiro–Wilk, then the Wilcoxon signed-rank test at α = 0.05). A BeagleBoyz/APT38–HOPLIGHT case study walks through the integrated workflow. See [Evaluation Methodology](/evaluation/evaluation-plan/).
+
+<p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin-top: 0.75rem;">
+  These contributions are intended to be evaluated in terms of the framework's implementation, prediction quality, optimization behavior, and performance on the studied dataset. Claims of superiority over competing systems require direct comparative experiments.
+</p>
+
+---
+
+## Differences From Existing Work
+
+The proposed framework differs from the reviewed approaches primarily in the way it connects behavioral analysis, defense evaluation, and evolutionary defense selection.
+
+<DataTable 
+  headers={["Design Dimension", "Existing Research Approaches Represented in Review", "Proposed Framework"]}
+  caption="Table 2.3: Architectural and operational comparison between existing approaches and the proposed framework."
+>
+  <tr>
+    <td><strong>Primary Objective</strong></td>
+    <td>Often focuses on detection, forecasting, feature selection, or a specific defense-analysis task [3], [4], [6]–[12].</td>
+    <td>Focuses on estimating residual severity and selecting candidate defense combinations.</td>
+  </tr>
+  <tr>
+    <td><strong>Behavioral Evidence</strong></td>
+    <td>Uses behavioral traces, selected features, or other malware-analysis evidence.</td>
+    <td>Uses Cuckoo-generated reports and extracted behavioral signatures as inputs.</td>
+  </tr>
+  <tr>
+    <td><strong>Threat Representation</strong></td>
+    <td>May use malware features, execution models, or adversarial techniques.</td>
+    <td>Maps observed behavior to MITRE ATT&CK tactics, techniques, and sub-techniques.</td>
+  </tr>
+  <tr>
+    <td><strong>Defense Representation</strong></td>
+    <td>Varies across studies; some focus on detection or strategic decision-making.</td>
+    <td>Uses the project's ATT&CK–D3FEND mapping process to identify candidate defenses.</td>
+  </tr>
+  <tr>
+    <td><strong>Severity Assessment</strong></td>
+    <td>May quantify detection risk, feature relevance, malware impact, or strategic utility.</td>
+    <td>Combines signature impact quantification with LLM-estimated residual severity for attack–defense pairs.</td>
+  </tr>
+  <tr>
+    <td><strong>Defense Selection</strong></td>
+    <td>May use fixed strategies, classifiers, or other decision-making approaches.</td>
+    <td>Uses CCEA to search candidate defense combinations through a defined fitness function.</td>
+  </tr>
+  <tr>
+    <td><strong>Evaluation</strong></td>
+    <td>Varies according to each study's objective.</td>
+    <td>Separately evaluates RS estimates and defense-optimization outcomes using defined quantitative measures.</td>
+  </tr>
+</DataTable>
+
+<div class="academic-callout" style="margin: 1.5rem 0; padding: 1.25rem 1.5rem; border-left: 4px solid var(--sl-color-accent); background: var(--academic-card-bg); border: 1px solid var(--academic-card-border); border-left-width: 4px; border-left-color: var(--sl-color-accent); border-radius: 6px;">
+  <p style="margin: 0; font-size: 0.95rem; color: var(--sl-color-gray-2); line-height: 1.6;">
+    The comparison does not imply that all prior methods are static, lack automation, or cannot be extended. Instead, it identifies the specific integration investigated in this project: using LLM-generated residual-severity estimates as evaluation signals for CCEA-based defense-combination selection.
+  </p>
+  <p style="margin: 0.75rem 0 0; font-size: 0.95rem; color: var(--sl-color-gray-2); line-height: 1.6;">
+    The framework's contribution is therefore the integration and evaluation of its components for the ransomware defense-selection problem. Its value must be established through reproducible experiments, appropriate baselines, and transparent reporting of prediction errors and optimization results.
+  </p>
+</div>
