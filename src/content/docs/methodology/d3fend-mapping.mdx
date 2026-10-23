@@ -1,0 +1,219 @@
+---
+title: "MITRE D3FEND Defense Mapping"
+description: "Ontological mapping bridging adversarial ATT&CK techniques to defensive countermeasures in the MITRE D3FEND matrix."
+---
+
+import PageIntro from '../../../components/PageIntro.astro';
+import ReferenceItem from '../../../components/ReferenceItem.astro';
+
+<PageIntro 
+  subtitle="Ontological mapping bridging adversarial ATT&CK techniques to defensive countermeasures in the MITRE D3FEND matrix." 
+  note="D3FEND standardizes countermeasure terminology and artifact relationships; candidate defenses are passed to LLM residual-severity evaluation and CCEA optimization."
+/>
+
+MITRE D3FEND is a cybersecurity knowledge base that organizes defensive techniques, digital artifacts, and relationships between defensive capabilities and adversarial techniques. It provides a standardized vocabulary for describing how cybersecurity mechanisms operate and which system components they affect [14], [TR-2].
+
+In this project, D3FEND supports the identification of candidate defensive mechanisms for the behaviors extracted from Cuckoo Sandbox reports and mapped to MITRE ATT&CK techniques. The resulting defense information is used by the LLM-based residual-severity evaluator to assess attack–defense combinations and by the CCEA module to search for effective defense combinations.
+
+:::note[Candidate Identification vs. Guaranteed Mitigation]
+The mapping stage identifies candidate defenses; it does not independently establish that a defense will completely mitigate an attack. This distinction is critical because the effectiveness of a defensive mechanism depends on the behavior being addressed, deployment context, and specific defense configuration.
+:::
+
+---
+
+## D3FEND Overview
+
+MITRE D3FEND provides a structured representation of defensive cybersecurity techniques and their relationships to digital artifacts and offensive techniques. Its knowledge model includes concepts and relationships that help describe defensive functionality in a consistent manner [14], [TR-2].
+
+D3FEND organizes defensive techniques into primary functional categories:
+
+<div class="academic-feature-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin: 1.5rem 0;">
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-accent);">📐</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Model</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Techniques that construct or use representations of systems and their security-relevant properties.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-tech);">🛡️</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Harden</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Techniques that strengthen systems, software, or configurations against attacks.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-purple);">🔍</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Detect</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Techniques that identify potentially malicious activity or security-relevant conditions.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-orange);">🚧</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Isolate</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Techniques that separate processes, systems, or resources to restrict unwanted interactions.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: #ec4899;">🎭</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Deceive</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Techniques that introduce deceptive resources or observations to influence or identify adversarial activity.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: #ef4444;">🧹</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Evict</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Techniques that remove malicious software, processes, or other unwanted elements from an environment.</p>
+  </div>
+</div>
+
+:::note[Functional Categories vs. Severity Values]
+The categories describe different defensive functions. They should not be interpreted as fixed severity-reduction levels because D3FEND does not assign numerical residual-severity values or rank defenses by effectiveness ([D3FEND FAQ](https://d3fend.mitre.org/faq/)).
+:::
+
+---
+
+## Digital Artifacts and Defensive Relationships
+
+Digital artifacts represent relevant components of a computing environment, such as processes, system calls, files, memory-related objects, passwords, and user accounts. D3FEND relates defensive techniques to these artifacts using explicit relationships.
+
+For example, the official D3FEND entry for **System Call Filtering (D3-SCF)** identifies the relationship *filters* with the `System Call` artifact and *isolates* with the `Process` artifact ([D3-SCF](https://d3fend.mitre.org/technique/d3f:SystemCallFiltering/)). **Strong Password Policy (D3-SPP)** is associated with relationships such as *strengthens* for `Password` and `User Account`, and *hardens* for `OT Controller` ([D3-SPP](https://d3fend.mitre.org/technique/d3f:StrongPasswordPolicy/)).
+
+These relationships help explain the function of a defense and the artifact on which it operates. However, an artifact relationship alone does not prove that a particular attack behavior will be blocked.
+
+---
+
+## Use of D3FEND in This Project
+
+The project uses D3FEND as the authoritative source for defensive technique terminology and the available defense–artifact relationships. The relevant mappings are organized into structured project data for use by subsequent modules.
+
+- **No Hallucinated Artifacts:** The mapping process does not ask the LLM to invent defensive artifacts. Instead, the LLM receives the defense information supplied by the mapping stage and evaluates its likely relevance to the observed attack behavior.
+- **Deterministic Knowledge Source:** The project does not require an ad-hoc semantic-reasoning engine to infer new defense relationships. The implemented mapping data and their source provenance determine which defensive relationships are supplied to the assessment stage.
+
+---
+
+## Candidate Defense Identification
+
+Candidate defense identification connects each signature to a pool of D3FEND defenses through ATT&CK techniques and ATT&CK mitigations:
+
+1. **Identify the observed attack technique:** ATT&CK mapping assigns each signature σ<sub>k</sub> the technique t<sub>k</sub> that best represents the observed activity.
+2. **Mitigation lookup:** The technique t<sub>k</sub> is linked to its ATT&CK mitigation IDs.
+3. **Map mitigations to D3FEND:** Each mitigation is mapped to the D3FEND defensive techniques that implement it.
+4. **Retrieve defense information:** For each candidate defense, the stage retrieves its name, canonical identifier, digital artifacts and relationship labels from the pinned D3FEND data.
+5. **Construct the candidate pool:** The defenses form the pool P<sub>k</sub> for signature σ<sub>k</sub>, and each (sample, signature, defense, impact score) combination becomes a row of the candidate dataset D (17 samples, 2,823 rows).
+6. **Evaluate effectiveness separately:** Each signature–defense pair is scored by the Reduced_Severity module, which returns the severity that remains on a 0–10 scale.
+
+### Worked example
+
+| Step | Value |
+|:---|:---|
+| **Signature behavior** | Loads code through shared modules |
+| **ATT&CK technique** | [T1129](https://attack.mitre.org/techniques/T1129/) Shared Modules |
+| **ATT&CK mitigation** | [M1038](https://attack.mitre.org/mitigations/M1038/) Execution Prevention |
+| **D3FEND pool P<sub>k</sub>** | [D3-EAL](https://d3fend.mitre.org/technique/d3f:ExecutableAllowlisting/) Executable Allowlisting, [D3-PSEP](https://d3fend.mitre.org/technique/d3f:ProcessSegmentExecutionPrevention/) Process Segment Execution Prevention |
+
+The candidate-generation process identifies defenses for evaluation; it does not assume that every candidate will be effective or appropriate in every operational environment.
+
+---
+
+## Defense–Artifact Relationships
+
+A defense–artifact relationship represents how a defensive technique acts on or relates to a specific digital artifact. The relationship provides information about the defense's function, while the artifact identifies the relevant system component.
+
+For the project, the mapping data preserve the exact relationship label and artifact terminology supplied by D3FEND. Generalized interpretations such as *monitors*, *filters*, *hardens*, *isolates*, or *strengthens* should not replace the source relationship without being clearly identified as a derived category.
+
+### Table 3.5: Examples of D3FEND Defensive Techniques and Their Artifact Relationships
+
+| D3FEND ID | Defensive Technique | Digital Artifact | Relationship |
+|:---|:---|:---|:---|
+| **[D3-SCF](https://d3fend.mitre.org/technique/d3f:SystemCallFiltering/)** | System Call Filtering | System Call | `filters` |
+| **[D3-SCF](https://d3fend.mitre.org/technique/d3f:SystemCallFiltering/)** | System Call Filtering | Process | `isolates` |
+| **[D3-SPP](https://d3fend.mitre.org/technique/d3f:StrongPasswordPolicy/)** | Strong Password Policy | Password | `strengthens` |
+| **[D3-SPP](https://d3fend.mitre.org/technique/d3f:StrongPasswordPolicy/)** | Strong Password Policy | User Account | `strengthens` |
+| **[D3-SPP](https://d3fend.mitre.org/technique/d3f:StrongPasswordPolicy/)** | Strong Password Policy | OT Controller | `hardens` |
+
+*Source: Official MITRE D3FEND technique pages, linked from each ID. These rows illustrate documented relationships; they do not establish that the corresponding defense mitigates every attack involving the listed artifact.*
+
+:::note[Conceptual Distinctions]
+- **Digital artifact:** Identifies the system component associated with the defense.
+- **Relationship:** Describes how the defensive technique acts on or relates to that component.
+- **Mitigation assessment:** Determines whether and to what extent that defensive action affects a particular attack behavior.
+
+*For example, System Call Filtering is related to both processes and system calls. Whether it reduces the effectiveness of a particular memory-manipulation behavior depends on the filtering policy and the relevant operations. The relationship alone does not establish that all such operations are blocked.*
+:::
+
+---
+
+## Attack–Defense Mapping
+
+The attack–defense mapping stage connects the attack information represented by MITRE ATT&CK with the defensive information supplied by D3FEND.
+
+The mapping contains two distinct relationships:
+
+1. **Attack-to-defense association:** Links an ATT&CK technique, through its ATT&CK mitigations, to candidate D3FEND defensive techniques.
+2. **Defense-to-artifact relationship:** Describes the digital artifacts associated with each defensive technique and the corresponding relationship labels.
+
+These relationships serve different purposes. The first helps identify candidate defenses for an observed attack technique; the second provides information about the defensive mechanism's function.
+
+The resulting structured data are supplied to the Reduced_Severity module together with the attack information and impact score. The module considers the defense in the context of the observed behavior and returns RS ∈ [0, 10] for use by the optimization stage.
+
+:::caution[Evolving Knowledge Graph Status]
+D3FEND's related-offensive-technique mappings may include inferred or experimental relationships. MITRE notes that the knowledge graph continues to evolve and that such relationships should not automatically be interpreted as proof of operational effectiveness ([D3FEND FAQ](https://d3fend.mitre.org/faq/)). The project therefore treats mapped defenses as candidates that require contextual assessment rather than guaranteed countermeasures.
+:::
+
+---
+
+## Provenance and Verification
+
+Reliable defense mapping requires each relationship to be traceable to its source. The project retains sufficient metadata to distinguish authoritative D3FEND information from manually curated mappings and model-generated assessments.
+
+### Recorded Provenance Metadata
+
+| Field | Purpose |
+|:---|:---|
+| **Defense name** | Human-readable name of the defensive technique. |
+| **D3FEND identifier** | Canonical identifier of the technique (e.g., `D3-SCF`). |
+| **Defense URI** | Canonical D3FEND resource URI. |
+| **Relationship label** | Relationship name supplied by the source (e.g., `filters`, `isolates`). |
+| **Artifact name** | Name of the associated digital artifact (e.g., `System Call`, `Process`). |
+| **Artifact URI** | Canonical artifact URI, where available. |
+| **Source and version** | Identifies the D3FEND data release or source file. |
+| **Mapping provenance** | Records whether the mapping is directly sourced, curated, or otherwise derived. |
+
+### Verification Protocol
+
+The mapping pipeline applies the following checks:
+
+- Confirm that each defense name and identifier correspond to an actual D3FEND technique.
+- Verify artifact names and relationship labels against the pinned D3FEND release ([ontology resources](https://d3fend.mitre.org/resources/ontology/)).
+- Preserve the source version and relevant URIs for scientific reproducibility.
+- Mark manually curated overrides separately from authoritative mappings.
+- Prevent the LLM from introducing unsupported defense relationships into the evidence record.
+
+:::tip[Experiment Pinning]
+The project should pin its selected D3FEND data snapshot to an experiment. This avoids silent changes to the mapping data between benchmark runs.
+:::
+
+---
+
+## Mapping Limitations
+
+1. **Mapping Does Not Guarantee Effectiveness:** A mapped defensive technique is a candidate for assessment, not proof that the attack will be prevented. D3FEND standardizes countermeasure terminology and relationships but does not itself quantify operational effectiveness or prioritize defenses ([D3FEND FAQ](https://d3fend.mitre.org/faq/)).
+2. **Artifact Relationships Have Limited Scope:** A defense may affect a particular artifact without preventing every malicious action involving it. For example, monitoring a process may provide useful evidence without stopping the process from performing a harmful operation.
+3. **Attack and Defense Abstractions May Differ:** An ATT&CK technique describes adversarial behavior at a particular level of abstraction, while a D3FEND technique describes defensive functionality. These descriptions may not correspond one-to-one, and a behavior may require more than one defensive mechanism to address its different aspects.
+4. **Mapping Coverage May Be Incomplete:** The available mapping data may not contain an explicit relationship for every attack technique, defensive mechanism, or digital artifact. An absent mapping should be recorded as unavailable or unresolved rather than treated as conclusive evidence that no relevant defense exists.
+5. **Defensive Effectiveness Depends on Configuration:** The operation of a defense may depend on its implementation, policy, deployment mode, and operating environment. A candidate defense may be technically relevant but insufficiently configured or too restrictive for a particular environment.
+6. **Source Data May Evolve:** D3FEND's techniques and relationships are updated over time. Reproducible experiments should record the version or snapshot used to construct the project mapping data and preserve any manual changes made during the study.
+
+:::note[Separation Rationale]
+These limitations motivate the separation between defense mapping and residual-severity estimation. The mapping stage provides structured defensive evidence, while the LLM-based evaluator assesses its likely relevance to the specific observed attack behavior.
+:::
+
+---
+
+## References
+
+
+<ReferenceItem 
+  number={14} 
+  authors="P. E. Kaloroumakis and M. J. Smith" 
+  title="Toward a knowledge graph of cybersecurity countermeasures" 
+  venue="The MITRE Corporation" 
+  year="2021" 
+  url="https://d3fend.mitre.org/resources/D3FEND.pdf" 
+/>
+
+**Technical resource:** [TR-2] [MITRE D3FEND knowledge graph](https://d3fend.mitre.org/)

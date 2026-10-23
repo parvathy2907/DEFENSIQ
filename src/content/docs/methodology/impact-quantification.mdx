@@ -1,0 +1,332 @@
+---
+title: "Signature Impact Quantification"
+description: "Quantifying the relative impact of behavioral signatures using initial severity banding and mutual-information co-occurrence refinement."
+---
+
+import PageIntro from '../../../components/PageIntro.astro';
+import WorkflowDiagram from '../../../components/WorkflowDiagram.astro';
+import ReferenceItem from '../../../components/ReferenceItem.astro';
+
+<PageIntro 
+  subtitle="Quantifying relative behavioral signature impact via initial severity banding and mutual-information co-occurrence refinement." 
+  note="Combines initial malware-analysis severity scores with repository-level co-occurrence analysis to establish empirical attack weights for subsequent defense evaluation."
+/>
+
+Signature impact quantification estimates the relative impact of behavioral signatures observed during malware analysis. In this project, it provides severity-related scores for the attack behaviors identified from Cuckoo Sandbox reports.
+
+The project uses the **MAGIC** impact-quantification approach [15], developed by the project's guide and co-guide (Rohini S, Gowtham Ramesh and Anand R Nair). It combines initial severity-based score assignment with a refinement stage based on signature co-occurrence and mutual information. This allows the initial score of a signature to be evaluated in the context of other behaviors observed in the malware repository. The refined score is the impact score A<sub>k</sub> used by the residual-severity and CCEA stages.
+
+The resulting impact scores are used by the subsequent attack–defense evaluation and CCEA-based optimization stages.
+
+:::note[Functional Separation]
+Signature impact quantification and residual-severity estimation perform distinct functions:
+- **Signature Impact Quantification:** Quantifies the standalone attack impact associated with an observed behavioral signature across the repository.
+- **Residual-Severity Estimation:** Evaluates the severity remaining when a specific candidate defensive mechanism is applied against that signature.
+:::
+
+---
+
+## Purpose of Impact Quantification
+
+Malware samples may trigger multiple behavioral signatures during execution. These signatures can represent different activities and may occur together as part of a broader attack sequence. Assigning an impact score to each signature provides a structured way to represent the relative significance of the observed behaviors.
+
+However, an initial severity value alone may not represent the context in which a behavior occurs. The co-occurrence of signatures can provide additional information about how behavioral patterns are associated within the collected ransomware repository.
+
+The project's impact-quantification stage addresses this by refining the initial signature scores using repository-level co-occurrence information and mutual-information values. The resulting scores provide a consistent numerical representation of behavioral impact for downstream analysis.
+
+The purpose of this stage is to support the comparison of attack signatures. It does not independently determine whether a particular defensive mechanism mitigates a behavior; that assessment is performed by the subsequent residual-severity evaluation component.
+
+---
+
+## Initial Severity Assignment
+
+The first pass of the impact-quantification algorithm assigns each signature an initial score based on its malware-analysis severity value, denoted as *V<sub>x</sub>* (Cuckoo's own severity for the signature), and on how frequently the signature occurs in the repository.
+
+The algorithm uses four severity bands:
+
+| Band | Severity Category | Description |
+|:---:|:---|:---|
+| <span class="band b1">B1</span> | Low | Minor operational telemetry, non-damaging diagnostic actions, or low-risk probing. |
+| <span class="band b2">B2</span> | Medium | Evasive behavior, persistence establishment, or defense modification attempts. |
+| <span class="band b3">B3</span> | High | Unpacking, process hollowing, privilege escalation, or security control disabling. |
+| <span class="band b4">B4</span> | Critical | Mass encryption, volume shadow copy deletion, or active ransomware extortion mechanisms. |
+
+Each signature is initially placed into a band according to its malware-analysis severity score and its frequency. Within the selected band, its position is determined relative to signatures that have already been placed in that band.
+
+For the ransomware implementation, the project uses a score range of **[1, 35]**. This range was selected based on the central tendency and statistical dispersion of the behaviors represented in the repository.
+
+:::note[Algorithmic Boundary Rule]
+The numerical boundaries between bands and the ranking procedure within a band follow the MAGIC algorithm [15]. The band labels are descriptive; they are not the boundaries themselves.
+:::
+
+The output of this pass is the initial impact score assigned to each signature.
+
+---
+
+## Severity Bands
+
+Severity bands provide a categorical organization of signatures according to their initial malware-analysis severity. They divide the configured score space into low, medium, high, and critical categories.
+
+The project uses four bands, whose boundaries come from the score-assignment procedure. They are stages of the initial scoring process, not a universal cybersecurity severity standard.
+
+The use of bands helps organize signatures with different severity values and supports relative ranking within a band. The subsequent refinement stage considers signature co-occurrence information to determine whether the initial score should be updated.
+
+:::tip[Experimental Consistency]
+The score range and its band boundaries should remain consistent with the configuration used for the experiment. Any changes to the range or band-assignment procedure must be documented so that the resulting scores remain reproducible.
+:::
+
+---
+
+## Co-Occurrence Analysis
+
+Co-occurrence analysis examines how often behavioral signatures appear together across the malware samples represented in the repository.
+
+A sample may trigger several signatures during execution. Examining these combinations provides information about the relationships between observed behaviors across the collected dataset.
+
+The project's impact-quantification method uses **Signature Co-occurrence Count (SCC)** to quantify co-occurrence information across the knowledge base. For a particular signature, the method considers its co-occurrence with the other signatures triggered by the sample.
+
+The co-occurrence stage performs the following operations:
+
+1. **Identify triggered signatures:** Extract the signatures triggered by each analyzed sample.
+2. **Examine behavioral combinations:** Analyze combinations of signatures observed executing together.
+3. **Aggregate co-occurrence frequency:** Quantify joint frequencies using Signature Co-occurrence Count (SCC).
+4. **Cross-reference knowledge base:** Align behavioral combinations against the existing ransomware knowledge base.
+5. **Supply refinement parameters:** Feed aggregated co-occurrence values to the mutual-information refinement stage.
+
+:::caution[Correlation vs. Causation]
+Co-occurrence indicates that signatures appear together in the analyzed data; it does not by itself establish that one behavior causes another. The information is used to refine signature impact scores rather than to infer unsupported causal relationships.
+:::
+
+---
+
+## Mutual-Information Refinement
+
+The second pass refines the initial signature scores using mutual-information-based information derived from signature co-occurrence.
+
+For a signature *S<sub>x</sub>*, the algorithm examines its relationship with the remaining signatures triggered by the relevant sample. Mutual-information values are aggregated across signature pairs to calculate a weight denoted as *W<sub>x</sub>*.
+
+The resulting weight is compared with a dynamic threshold:
+
+- **If *W<sub>x</sub>* exceeds the threshold:** The signature score is updated according to the implemented refinement procedure.
+- **Otherwise:** The existing score is retained.
+
+This process allows the algorithm to consider information from related behavioral patterns rather than relying exclusively on the initial severity value.
+
+### Refinement Procedure
+
+The method follows seven structured steps:
+
+1. Retrieve the initial impact scores assigned during the first pass.
+2. Identify the relevant signature co-occurrence information from the repository.
+3. Calculate the mutual-information values used by the implementation.
+4. Aggregate the relevant values to obtain *W<sub>x</sub>* for each signature.
+5. Compare *W<sub>x</sub>* with the configured dynamic threshold.
+6. Apply the implemented score-update procedure when the threshold condition is met; otherwise, retain the existing score.
+7. Return the refined signature impact scores.
+
+:::note[Formula details]
+The mutual-information formula, aggregation procedure, dynamic-threshold calculation and score-update equation follow the MAGIC formulation [15].
+:::
+
+---
+
+## Algorithm Inputs and Outputs
+
+The algorithm receives the signature information and repository-level evidence required for initial scoring and refinement.
+
+### Inputs
+
+- **Behavioral signatures:** The signatures extracted from the Cuckoo Sandbox analysis reports.
+- **Initial severity values (*V<sub>x</sub>*):** Malware-analysis severity scores used during initial placement.
+- **Execution records:** Information identifying which signatures were triggered by each analyzed sample.
+- **Signature Co-occurrence Count (SCC):** Repository-level information describing the co-occurrence of signatures.
+- **Ransomware knowledge base:** Existing behavioral information used by the refinement method.
+- **Scoring configuration:** The configured score range [1, 35], severity bands (B1–B4), and threshold-related parameters.
+
+### Outputs
+
+The algorithm returns a refined impact score for each processed signature. These values retain the association with their original signature identifiers so that the results can be used by subsequent components.
+
+The scores are then available for use in the attack–defense evaluation and the CCEA fitness-calculation stage.
+
+### Formal Algorithmic Procedure
+
+```text
+Algorithm: Mutual-Information-Based Signature Impact Refinement
+Input:   Triggered signatures, initial severity values (Vx), execution records,
+         repository-level co-occurrence information (SCC), scoring configuration [1, 35].
+Output:  Refined severity-related impact scores for processed signatures.
+
+Procedure:
+  1. Assign initial scores to signatures using malware-analysis severity values (Vx).
+  2. Place signatures into configured severity bands (B1: Low, B2: Medium, B3: High, B4: Critical).
+  3. Rank signatures relative to existing signatures within each band.
+  4. Retrieve co-occurrence information (SCC) for signatures observed together in analyzed samples.
+  5. Calculate mutual-information values across signature pairs.
+  6. Aggregate mutual-information values to compute weight Wx for each signature.
+  7. Compare each weight Wx with the dynamic threshold.
+  8. If Wx > Dynamic Threshold:
+       Update score using the implemented refinement rule.
+     Else:
+       Retain existing initial score.
+  9. Return refined impact scores.
+```
+
+---
+
+## Figure 3.5: Impact Quantification and Weight Refinement Flowchart
+
+<WorkflowDiagram 
+  title="Two-Pass Signature Impact Quantification and Weight Refinement Flowchart" 
+  figureNumber="Figure 3.5"
+  status="Two-Pass Algorithm Flow"
+  caption="Two-pass signature impact quantification comprising initial severity-based placement and mutual-information-based score refinement using signature co-occurrence information."
+>
+  <div style="width: 100%; max-width: 860px; padding: 1.5rem 0.5rem; display: flex; justify-content: center;">
+    <svg viewBox="0 0 860 620" width="100%" height="auto" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow: visible;">
+      <defs>
+        <marker id="fl-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--sl-color-accent)" />
+        </marker>
+        <marker id="fl-tech-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--sl-color-tech)" />
+        </marker>
+        <marker id="fl-purple-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--sl-color-purple)" />
+        </marker>
+      </defs>
+
+      {/* Outer Containers: Pass 1 and Pass 2 */}
+      {/* Pass 1 Container */}
+      <rect x="40" y="15" width="370" height="400" rx="10" fill="var(--academic-card-bg)" stroke="var(--sl-color-accent)" stroke-width="1.5" stroke-dasharray="4 4" />
+      <text x="225" y="38" text-anchor="middle" fill="var(--sl-color-accent)" font-size="11" font-weight="700" letter-spacing="0.05em">PASS 1: INITIAL SEVERITY BANDING</text>
+
+      {/* Step 1: Cuckoo Behavioral Signatures */}
+      <rect x="65" y="55" width="320" height="48" rx="6" fill="var(--academic-card-bg)" stroke="var(--academic-card-border)" stroke-width="1.5" />
+      <text x="225" y="84" text-anchor="middle" fill="var(--sl-color-gray-1)" font-size="12" font-weight="600">Cuckoo Behavioral Signatures</text>
+
+      <line x1="225" y1="103" x2="225" y2="123" stroke="var(--sl-color-accent)" stroke-width="2" marker-end="url(#fl-arrow)" />
+
+      {/* Step 2: Read Initial Severity Values */}
+      <rect x="65" y="125" width="320" height="48" rx="6" fill="var(--academic-card-bg)" stroke="var(--academic-card-border)" stroke-width="1.5" />
+      <text x="225" y="154" text-anchor="middle" fill="var(--sl-color-gray-1)" font-size="12" font-weight="600">Read Initial Severity Values (Vx)</text>
+
+      <line x1="225" y1="173" x2="225" y2="193" stroke="var(--sl-color-accent)" stroke-width="2" marker-end="url(#fl-arrow)" />
+
+      {/* Step 3: Assign Severity Bands */}
+      <rect x="65" y="195" width="320" height="48" rx="6" fill="var(--academic-card-bg)" stroke="var(--academic-card-border)" stroke-width="1.5" />
+      <text x="225" y="224" text-anchor="middle" fill="var(--sl-color-gray-1)" font-size="12" font-weight="600">Assign Severity Bands (B1 to B4)</text>
+
+      <line x1="225" y1="243" x2="225" y2="263" stroke="var(--sl-color-accent)" stroke-width="2" marker-end="url(#fl-arrow)" />
+
+      {/* Step 4: Rank Signatures Within Bands */}
+      <rect x="65" y="265" width="320" height="48" rx="6" fill="var(--academic-card-bg)" stroke="var(--academic-card-border)" stroke-width="1.5" />
+      <text x="225" y="294" text-anchor="middle" fill="var(--sl-color-gray-1)" font-size="12" font-weight="600">Rank Signatures Within Bands</text>
+
+      <line x1="225" y1="313" x2="225" y2="333" stroke="var(--sl-color-accent)" stroke-width="2" marker-end="url(#fl-arrow)" />
+
+      {/* Step 5: Initial Impact Scores */}
+      <rect x="65" y="335" width="320" height="55" rx="6" fill="var(--academic-card-bg)" stroke="var(--sl-color-accent)" stroke-width="1.8" />
+      <text x="225" y="360" text-anchor="middle" fill="var(--sl-color-accent)" font-size="13" font-weight="700">Initial Impact Scores [1, 35]</text>
+      <text x="225" y="378" text-anchor="middle" fill="var(--sl-color-gray-4)" font-size="10">Baseline empirical placement</text>
+
+      {/* Pass 1 to Pass 2 Transition Arrow */}
+      <path d="M 385 362 L 450 362 L 450 80 L 490 80" stroke="var(--sl-color-accent)" stroke-width="2" marker-end="url(#fl-arrow)" />
+
+      {/* Pass 2 Container */}
+      <rect x="470" y="15" width="350" height="470" rx="10" fill="var(--academic-card-bg)" stroke="var(--sl-color-purple)" stroke-width="1.5" stroke-dasharray="4 4" />
+      <text x="645" y="38" text-anchor="middle" fill="var(--sl-color-purple)" font-size="11" font-weight="700" letter-spacing="0.05em">PASS 2: MUTUAL-INFORMATION REFINEMENT</text>
+
+      {/* Step 6: Retrieve Co-occurrence Data */}
+      <rect x="495" y="55" width="300" height="48" rx="6" fill="var(--academic-card-bg)" stroke="var(--academic-card-border)" stroke-width="1.5" />
+      <text x="645" y="84" text-anchor="middle" fill="var(--sl-color-gray-1)" font-size="12" font-weight="600">Retrieve Co-occurrence Data (SCC)</text>
+
+      <line x1="645" y1="103" x2="645" y2="123" stroke="var(--sl-color-purple)" stroke-width="2" marker-end="url(#fl-purple-arrow)" />
+
+      {/* Step 7: Calculate Mutual-Information Values */}
+      <rect x="495" y="125" width="300" height="48" rx="6" fill="var(--academic-card-bg)" stroke="var(--academic-card-border)" stroke-width="1.5" />
+      <text x="645" y="154" text-anchor="middle" fill="var(--sl-color-gray-1)" font-size="12" font-weight="600">Calculate Mutual-Information Values</text>
+
+      <line x1="645" y1="173" x2="645" y2="193" stroke="var(--sl-color-purple)" stroke-width="2" marker-end="url(#fl-purple-arrow)" />
+
+      {/* Step 8: Aggregate Signature-Pair Weights */}
+      <rect x="495" y="195" width="300" height="48" rx="6" fill="var(--academic-card-bg)" stroke="var(--academic-card-border)" stroke-width="1.5" />
+      <text x="645" y="224" text-anchor="middle" fill="var(--sl-color-gray-1)" font-size="12" font-weight="600">Aggregate Signature-Pair Weights (Wx)</text>
+
+      <line x1="645" y1="243" x2="645" y2="263" stroke="var(--sl-color-purple)" stroke-width="2" marker-end="url(#fl-purple-arrow)" />
+
+      {/* Step 9: Decision Rhombus - Dynamic Threshold */}
+      <polygon points="645,265 770,305 645,345 520,305" fill="var(--academic-card-bg)" stroke="var(--sl-color-orange)" stroke-width="1.5" />
+      <text x="645" y="300" text-anchor="middle" fill="var(--sl-color-orange)" font-size="11" font-weight="700">Wx &gt; Dynamic Threshold?</text>
+      <text x="645" y="318" text-anchor="middle" fill="var(--sl-color-gray-4)" font-size="9.5">Co-occurrence significance</text>
+
+      {/* Branch 1: Met (Left branch) */}
+      <line x1="520" y1="305" x2="495" y2="305" stroke="var(--sl-color-tech)" stroke-width="2" />
+      <line x1="495" y1="305" x2="495" y2="395" stroke="var(--sl-color-tech)" stroke-width="2" />
+      <line x1="495" y1="395" x2="520" y2="395" stroke="var(--sl-color-tech)" stroke-width="2" marker-end="url(#fl-tech-arrow)" />
+      <text x="490" y="350" text-anchor="end" fill="var(--sl-color-tech)" font-size="10" font-weight="700">Threshold Met</text>
+
+      {/* Update Score Box */}
+      <rect x="525" y="375" width="115" height="40" rx="5" fill="var(--academic-card-bg)" stroke="var(--sl-color-tech)" stroke-width="1.5" />
+      <text x="582" y="399" text-anchor="middle" fill="var(--sl-color-tech)" font-size="11" font-weight="600">Update Score</text>
+
+      {/* Branch 2: Not Met (Right branch) */}
+      <line x1="770" y1="305" x2="795" y2="305" stroke="var(--sl-color-gray-4)" stroke-width="2" />
+      <line x1="795" y1="305" x2="795" y2="395" stroke="var(--sl-color-gray-4)" stroke-width="2" />
+      <line x1="795" y1="395" x2="770" y2="395" stroke="var(--sl-color-gray-4)" stroke-width="2" marker-end="url(#fl-arrow)" />
+      <text x="800" y="350" text-anchor="start" fill="var(--sl-color-gray-4)" font-size="10" font-weight="700">Not Met</text>
+
+      {/* Retain Score Box */}
+      <rect x="650" y="375" width="115" height="40" rx="5" fill="var(--academic-card-bg)" stroke="var(--academic-card-border)" stroke-width="1.5" />
+      <text x="707" y="399" text-anchor="middle" fill="var(--sl-color-gray-3)" font-size="11" font-weight="600">Retain Score</text>
+
+      {/* Reconverge arrows to Refined Impact Scores */}
+      <line x1="582" y1="415" x2="582" y2="435" stroke="var(--sl-color-purple)" stroke-width="2" />
+      <line x1="707" y1="415" x2="707" y2="435" stroke="var(--sl-color-purple)" stroke-width="2" />
+      <line x1="582" y1="435" x2="707" y2="435" stroke="var(--sl-color-purple)" stroke-width="2" />
+      <line x1="645" y1="435" x2="645" y2="445" stroke="var(--sl-color-purple)" stroke-width="2" marker-end="url(#fl-purple-arrow)" />
+
+      {/* Refined Impact Scores Output */}
+      <rect x="525" y="445" width="240" height="35" rx="6" fill="var(--academic-card-bg)" stroke="var(--sl-color-purple)" stroke-width="1.8" />
+      <text x="645" y="467" text-anchor="middle" fill="var(--sl-color-purple)" font-size="12" font-weight="700">Refined Impact Scores</text>
+
+      {/* Final Bottom Stage: Attack–Defense Evaluation */}
+      <line x1="645" y1="480" x2="645" y2="540" stroke="var(--sl-color-accent)" stroke-width="2" />
+      <line x1="645" y1="540" x2="430" y2="540" stroke="var(--sl-color-accent)" stroke-width="2" />
+      <line x1="430" y1="540" x2="430" y2="560" stroke="var(--sl-color-accent)" stroke-width="2" marker-end="url(#fl-arrow)" />
+
+      <rect x="230" y="560" width="400" height="50" rx="8" fill="var(--academic-card-bg)" stroke="var(--sl-color-tech)" stroke-width="1.8" />
+      <text x="430" y="583" text-anchor="middle" fill="var(--sl-color-tech)" font-size="13" font-weight="700">Attack–Defense Evaluation &amp; CCEA Optimization</text>
+      <text x="430" y="600" text-anchor="middle" fill="var(--sl-color-gray-4)" font-size="10.5">Combines refined impact scores with LLM residual-severity assessments</text>
+    </svg>
+  </div>
+</WorkflowDiagram>
+
+---
+
+## Limitations
+
+The impact-quantification method depends on the quality and coverage of the collected malware repository:
+
+1. **Repository Dependency:** Signatures that rarely occur in the sample population provide limited co-occurrence evidence, potentially leaving their initial severity bands unrefined.
+2. **Dynamic Attack Evolution:** Behavioral patterns observed in the current repository may not capture unseen variations or future ransomware evasion tactics.
+3. **Correlation vs. Causation:** Co-occurrence indicates empirical correlation across runtime traces; it does not establish deterministic causal dependencies between attack stages.
+4. **Scope Limitation:** A refined impact score represents the standalone behavioral significance of an attack signature; it does not measure the severity remaining after a defense is applied.
+
+:::note[Evaluation Separation]
+In this project, refined impact scores are combined with separately estimated residual-severity values during defense-combination evaluation. This clear separation allows the impact-quantification stage and the LLM-based residual-severity stage to be assessed independently according to their respective objectives.
+:::
+
+---
+
+## References
+
+
+<ReferenceItem 
+  number={15} 
+  authors="S. Rohini, G. Ramesh, and A. R. Nair" 
+  title="MAGIC: Malware behaviour analysis and impact quantification through signature co-occurrence and regression" 
+  venue="Computers & Security, vol. 139, Art. no. 103735" 
+  year="2024" 
+  doi="10.1016/j.cose.2024.103735" 
+/>

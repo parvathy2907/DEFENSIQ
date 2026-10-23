@@ -1,0 +1,158 @@
+---
+title: "MITRE ATT&CK TTP Mapping"
+description: "Connecting behavioral signatures extracted from dynamic Cuckoo analysis with MITRE ATT&CK enterprise adversary tactics, techniques, and procedures."
+---
+
+import PageIntro from '../../../components/PageIntro.astro';
+import ReferenceItem from '../../../components/ReferenceItem.astro';
+
+<PageIntro 
+  subtitle="Standardized taxonomic correlation of dynamic execution signatures to adversarial tactics and techniques." 
+  note="Provides a structured representation of observed attack behavior to serve as input for subsequent MITRE D3FEND defense mapping and residual-severity evaluation."
+/>
+
+MITRE ATT&CK Tactics, Techniques, and Procedures (TTPs) provide a structured way to describe adversarial behavior [13]. In this project, ATT&CK mapping connects behavioral signatures extracted from Cuckoo Sandbox reports with the techniques that best describe the observed activity.
+
+The mapped techniques provide a standardized representation of attack behavior and serve as inputs to the subsequent defense-mapping stage. This enables the framework to connect observed malware activity with candidate defensive mechanisms and evaluate the resulting attack–defense combinations.
+
+---
+
+## Tactics, Techniques, and Sub-Techniques
+
+MITRE ATT&CK organizes adversarial behavior into three related hierarchical concepts [13]:
+
+- **Tactics:** Describe the adversary's objective or goal, such as gaining access, avoiding detection, or disrupting system availability.
+- **Techniques:** Describe the general method used to achieve a tactical objective.
+- **Sub-techniques:** Provide a more specific description of a technique when further detail is available.
+
+Mappings use the fourteen tactics of the ATT&CK Enterprise matrix. The project uses the MITRE ATT&CK Enterprise knowledge base to characterize ransomware-related behaviors observed during dynamic analysis. The mapping identifies the relevant technique and, where supported by the evidence, the corresponding sub-technique. Each mapped technique is then linked to its ATT&CK mitigations (for example, T1129 Shared Modules → M1038 Execution Prevention), which are the bridge to D3FEND defenses.
+
+### Representative Ransomware TTP Examples
+
+| ATT&CK ID | Technique | Tactic | Relevant Observed Behavior |
+|:---|:---|:---|:---|
+| **[T1486](https://attack.mitre.org/techniques/T1486/)** | Data Encrypted for Impact | Impact | Encrypting data to disrupt access to files or system resources. |
+| **[T1490](https://attack.mitre.org/techniques/T1490/)** | Inhibit System Recovery | Impact | Deleting recovery information or disabling recovery mechanisms (e.g., volume shadow copies). |
+| **[T1055.012](https://attack.mitre.org/techniques/T1055/012/)** | Process Injection: Process Hollowing | Defense Evasion; Privilege Escalation | Replacing the contents of a suspended process with malicious code. |
+
+:::note[Observation Context]
+These examples illustrate the types of behaviors that can be represented using ATT&CK. They are not claims that every analyzed sample exhibits these techniques. The exact mapping depends on the evidence extracted from the corresponding analysis report.
+:::
+
+---
+
+## Behaviour-to-Technique Mapping
+
+The behavior-to-technique mapping stage associates the signatures and execution evidence extracted from Cuckoo reports with relevant ATT&CK techniques.
+
+The process follows these steps:
+
+1. **Extract observed behavior:** The signature extraction module retrieves triggered signatures, associated API information, execution actions, and other relevant behavioral indicators from the Cuckoo report.
+2. **Interpret the behavior:** The extracted information is examined to determine what activity the signature represents. Relevant evidence may include API names, command-line arguments, process activity, file-system operations, or changes to system configuration, depending on what the report contains.
+3. **Identify the corresponding ATT&CK technique:** The observed behavior is compared with the descriptions and technical characteristics of applicable ATT&CK techniques. A technique is assigned when the available evidence supports the relationship.  
+   *For example, evidence that a process uses system utilities to delete volume shadow copies may support mapping to `T1490 — Inhibit System Recovery`.*
+4. **Record the mapping:** The resulting mapping records the signature, the observed behavior, the ATT&CK technique identifier, the technique name, and the associated tactic or tactics. Supporting evidence should be retained so that the mapping can be reviewed.
+5. **Pass the mapping to defense analysis:** The mapped technique is passed to the project's ATT&CK–D3FEND defense-mapping process, which identifies candidate defensive mechanisms for subsequent attack–defense evaluation.
+
+:::note[Many-to-Many Mapping Relationships]
+A signature does not necessarily correspond to exactly one ATT&CK technique. Depending on the behavior observed, a signature may support multiple technique mappings, while several signatures may provide evidence for the same technique.
+:::
+
+---
+
+## Mapping Evidence
+
+An ATT&CK mapping should be supported by evidence that explains why the observed behavior corresponds to the selected technique. The signature name alone is not sufficient to establish a mapping.
+
+Relevant evidence may include:
+
+<div class="academic-feature-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin: 1.5rem 0;">
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-accent);">⚡</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">API Activity</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Windows Native API calls or other observed low-level operations associated with the behavior.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-tech);">💻</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Command-Line Arguments</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Commands, flags, and parameters (e.g., <code>vssadmin delete shadows /all /quiet</code>) that clarify the operation.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-purple);">🌳</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Process Activity</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Process creation, parent–child execution lineage, memory unmapping, and execution sequences.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-orange);">📁</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">File-System Activity</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">File creation, extension renaming, mass entropy changes, and directory traversals.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: #06b6d4;">⚙️</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">System Configuration Changes</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Registry modifications, recovery configuration changes, or service tampering.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: #ec4899;">🔗</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Behavioral Sequences</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">An ordered sequence of temporal events that collectively provides corroborating support for a technique.</p>
+  </div>
+</div>
+
+The evidence available varies by sample and sandbox configuration. A single API call may be consistent with several possible behaviors and should not automatically be treated as proof of a specific ATT&CK technique.
+
+For example, `NtUnmapViewOfSection` may be relevant to process hollowing, but the API call alone does not establish the entire process-hollowing behavior. Additional evidence of suspended process creation, memory replacement, and subsequent execution would provide stronger support.
+
+:::caution[Scientific Integrity Rule]
+The project uses observed behavior and relevant technical evidence to establish the mapping. It does not assume that a mapping is correct merely because an API name appears in a signature.
+:::
+
+---
+
+## Example Mapping
+
+The following examples demonstrate how observed behavior can be associated with ATT&CK techniques. They illustrate the mapping method and should not be interpreted as records from the project's dataset unless verified against the actual Cuckoo reports.
+
+### Table 3.4: Illustrative Mapping of Behavioral Signatures to MITRE ATT&CK Techniques
+
+| Signature / Behavior | ATT&CK Technique | Tactic | Supporting Evidence |
+|:---|:---|:---|:---|
+| Execution of commands that delete volume shadow copies to prevent recovery. | **T1490 — Inhibit System Recovery** | Impact | Command-line arguments or execution evidence confirming the deletion of shadow copies or disabling of recovery mechanisms. |
+| Behavior involving encryption of files to make data inaccessible. | **T1486 — Data Encrypted for Impact** | Impact | Observed file modification or encryption-related behavior consistent with data encryption for impact. |
+| Creation of a suspended process followed by memory unmapping, replacement with malicious code, and resumption of execution. | **T1055.012 — Process Injection: Process Hollowing** | Defense Evasion; Privilege Escalation | A sequence of process creation, memory manipulation, and execution events consistent with process hollowing. |
+
+:::note[Resolution Criteria]
+The mappings are based on the behavior described, not merely on the presence of an API or a signature name. If the collected evidence is insufficient to distinguish a technique from other possible explanations, the mapping should remain unresolved or be marked for review.
+:::
+
+---
+
+## Limitations
+
+ATT&CK mapping provides a standardized interpretation of observed behavior, but several limitations must be considered:
+
+1. **Incomplete behavioral evidence:** Dynamic analysis observes activity during a particular execution. Malware that delays execution, checks its environment, or requires conditions absent from the sandbox may not exhibit all its capabilities during the analysis window.
+2. **Ambiguity between techniques:** A single API call or system operation may be associated with more than one possible technique. Reliable mapping may require additional evidence from command-line arguments, process context, or a sequence of observed events.
+3. **Differences in behavior across malware families:** Different malware families may implement similar objectives through different mechanisms. A mapping based on one implementation should not automatically be generalized to every implementation of the same attack technique.
+4. **Limits of the technique taxonomy:** ATT&CK provides a structured taxonomy of adversarial behavior, but the available technique descriptions do not necessarily capture every implementation detail observed during dynamic analysis. The project's mapping process must therefore preserve relevant evidence instead of treating the technique identifier as a complete representation of the behavior.
+5. **Mapping does not establish mitigation effectiveness:** Identifying an ATT&CK technique does not establish which defense will successfully stop it. The project's downstream D3FEND mapping identifies candidate defensive mechanisms, while LLM-based residual-severity estimation evaluates the likely effect of a candidate defense on the observed behavior.
+
+:::note[Evaluation Separation]
+Mapping accuracy and residual-severity accuracy are separate evaluation concerns. A correct ATT&CK mapping supports the subsequent stages but does not, by itself, guarantee a correct defense recommendation.
+:::
+
+---
+
+## References
+
+
+<ReferenceItem 
+  number={13} 
+  authors="B. E. Strom, A. Applebaum, D. P. Miller, K. C. Nickels, A. G. Pennington, and C. B. Thomas" 
+  title="MITRE ATT&CK: Design and philosophy" 
+  venue="The MITRE Corporation" 
+  year="Mar. 2020" 
+  url="https://www.mitre.org/news-insights/publication/mitre-attck-design-and-philosophy" 
+/>
+
+**Technical resource:** [TR-1] [MITRE ATT&CK Enterprise Matrix](https://attack.mitre.org/matrices/enterprise/)
