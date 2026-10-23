@@ -1,0 +1,260 @@
+---
+title: "Cuckoo Sandbox and Malware Analysis"
+description: "Dynamic malware execution environment, host-guest virtualized isolation architecture, and behavioral telemetry collection."
+---
+
+import PageIntro from '../../../components/PageIntro.astro';
+import WorkflowDiagram from '../../../components/WorkflowDiagram.astro';
+import ReferenceItem from '../../../components/ReferenceItem.astro';
+
+<PageIntro 
+  subtitle="Dynamic behavioral execution environment, VirtualBox host-guest isolation architecture, and JSON execution report processing." 
+/>
+
+Cuckoo Sandbox is an automated malware-analysis platform that executes suspicious samples in a controlled virtualized environment and collects behavioral evidence for subsequent analysis. In this project, Cuckoo provides the initial evidence used to identify triggered malware signatures and characterize ransomware-related behaviors.
+
+The project uses a host–guest architecture in which the host manages sample submission, scheduling, storage, and reporting, while an isolated guest virtual machine executes the submitted sample. The resulting reports are parsed to extract relevant behavioral information for the subsequent ATT&CK mapping, impact quantification, and defense-optimization stages.
+
+---
+
+## Purpose of Dynamic Malware Analysis
+
+Static malware analysis examines a program without executing it. It can provide information about executable structure, embedded strings, imports, and other file characteristics. However, packing, encryption, and obfuscation may make the program's behavior difficult to understand from its static representation alone.
+
+Dynamic malware analysis complements static analysis by observing a program during execution. Depending on the sandbox configuration and available monitoring mechanisms, it can collect evidence about API activity, process creation, file operations, registry changes, network communication, and other runtime events [2].
+
+This capability is relevant to ransomware research because malicious behavior may involve multiple interacting actions, including process execution, access to files, recovery inhibition, and data encryption. By executing samples in a controlled environment, the project obtains behavioral reports that can be processed to identify triggered Cuckoo signatures and their associated attributes.
+
+Dynamic analysis also has limitations. A sample may delay execution, detect its analysis environment, or require conditions that are not present in the sandbox. Consequently, the absence of a behavior from a report does not establish that the malware lacks that capability.
+
+In this project, dynamic malware analysis serves as the behavioral-evidence collection stage. It does not independently determine which defense is optimal; that task is addressed by the subsequent mapping, residual-severity estimation, and evolutionary optimization components.
+
+---
+
+## Sandbox Architecture
+
+<WorkflowDiagram 
+  title="Host–Guest Virtualized Isolation Architecture" 
+  figureNumber="Figure 3.3"
+  status="VirtualBox Testbed"
+  caption="Figure 3.3: Host–guest virtualized isolation architecture. The host machine manages task scheduling, sample submission, and report collection, while the VirtualBox hypervisor maintains an isolated guest VM for malware execution, runtime monitoring, and behavioral telemetry capture."
+>
+  <div style="width: 100%; max-width: 840px; padding: 1.5rem 0.5rem; display: flex; justify-content: center;">
+    <svg viewBox="0 0 840 430" width="100%" height="auto" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow: visible;">
+      <defs>
+        <marker id="cuckoo-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--sl-color-accent)" />
+        </marker>
+        <marker id="cuckoo-tech-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--sl-color-tech)" />
+        </marker>
+      </defs>
+
+      {/* HOST MACHINE Container */}
+      <rect x="20" y="20" width="370" height="240" rx="10" fill="var(--academic-card-bg)" stroke="var(--academic-card-border)" stroke-width="1.5" />
+      <rect x="20" y="20" width="370" height="34" rx="10" fill="var(--sl-color-accent-low)" />
+      <text x="205" y="42" text-anchor="middle" fill="var(--sl-color-accent)" font-size="12" font-weight="700" letter-spacing="0.04em">HOST MACHINE (Cuckoo Management)</text>
+
+      <g transform="translate(40, 70)">
+        <rect x="0" y="0" width="330" height="36" rx="5" fill="var(--placeholder-bg)" stroke="var(--sl-color-hairline)" />
+        <text x="165" y="22" text-anchor="middle" fill="var(--sl-color-gray-2)" font-size="11" font-weight="600">Sample Ingestion (Web Dashboard / API)</text>
+
+        <rect x="0" y="46" width="330" height="36" rx="5" fill="var(--placeholder-bg)" stroke="var(--sl-color-hairline)" />
+        <text x="165" y="68" text-anchor="middle" fill="var(--sl-color-gray-2)" font-size="11" font-weight="600">Task Queue &amp; Analysis Scheduler</text>
+
+        <rect x="0" y="92" width="330" height="36" rx="5" fill="var(--placeholder-bg)" stroke="var(--sl-color-hairline)" />
+        <text x="165" y="114" text-anchor="middle" fill="var(--sl-color-gray-2)" font-size="11" font-weight="600">Analysis Storage &amp; Report Collector</text>
+
+        <rect x="0" y="138" width="330" height="36" rx="5" fill="var(--sl-color-tech-bg)" stroke="var(--sl-color-tech-border)" />
+        <text x="165" y="160" text-anchor="middle" fill="var(--sl-color-tech)" font-size="11" font-weight="600">JSON Report Processing Pipeline</text>
+      </g>
+
+      {/* Task Assignment Arrow (Host to Hypervisor/Guest) */}
+      <path d="M 390 100 H 455" stroke="var(--sl-color-accent)" stroke-width="2" marker-end="url(#cuckoo-arrow)" />
+      <text x="422" y="92" text-anchor="middle" fill="var(--sl-color-accent)" font-size="9" font-weight="600">Deploy Sample</text>
+
+      {/* VIRTUALIZATION LAYER Container */}
+      <rect x="460" y="20" width="360" height="240" rx="10" fill="var(--academic-card-bg)" stroke="var(--sl-color-tech)" stroke-width="1.5" stroke-dasharray="4 4" />
+      <rect x="460" y="20" width="360" height="34" rx="10" fill="var(--sl-color-tech-bg)" />
+      <text x="640" y="42" text-anchor="middle" fill="var(--sl-color-tech)" font-size="12" font-weight="700" letter-spacing="0.04em">VIRTUALIZATION LAYER (VirtualBox)</text>
+
+      {/* ISOLATED GUEST VM */}
+      <rect x="480" y="68" width="320" height="175" rx="8" fill="var(--placeholder-bg)" stroke="var(--academic-card-border)" stroke-width="1.5" />
+      <text x="640" y="92" text-anchor="middle" fill="var(--sl-color-gray-1)" font-size="11.5" font-weight="700">Isolated Guest VM (Windows OS)</text>
+
+      <g transform="translate(500, 105)">
+        <rect x="0" y="0" width="280" height="32" rx="4" fill="var(--academic-card-bg)" stroke="var(--sl-color-hairline)" />
+        <text x="140" y="20" text-anchor="middle" fill="var(--sl-color-gray-2)" font-size="10.5">Guest Agent (Port 8000 Listener)</text>
+
+        <rect x="0" y="40" width="280" height="32" rx="4" fill="var(--sl-color-accent-low)" stroke="var(--sl-color-accent)" />
+        <text x="140" y="60" text-anchor="middle" fill="var(--sl-color-accent)" font-size="10.5" font-weight="600">Cuckoo Analyzer (Sample Detonation)</text>
+
+        <rect x="0" y="80" width="280" height="42" rx="4" fill="var(--academic-card-bg)" stroke="var(--sl-color-hairline)" />
+        <text x="140" y="98" text-anchor="middle" fill="var(--sl-color-gray-3)" font-size="9.5">Runtime Monitoring (APIs, Files, Reg)</text>
+        <text x="140" y="114" text-anchor="middle" fill="var(--sl-color-gray-4)" font-size="8.5">Kernel &amp; User-Mode Interception</text>
+      </g>
+
+      {/* Telemetry Return Arrow (Guest to Host) */}
+      <path d="M 480 180 H 425 V 225 H 390" stroke="var(--sl-color-tech)" stroke-width="2" marker-end="url(#cuckoo-tech-arrow)" />
+      <text x="435" y="172" text-anchor="middle" fill="var(--sl-color-tech)" font-size="9" font-weight="600">Telemetry Stream</text>
+
+      {/* Downstream Post-Execution Pipeline (Bottom Bar) */}
+      <rect x="20" y="290" width="800" height="115" rx="8" fill="var(--placeholder-bg)" stroke="var(--academic-card-border)" stroke-width="1.5" />
+      <text x="420" y="315" text-anchor="middle" fill="var(--sl-color-gray-2)" font-size="11.5" font-weight="700">DOWNSTREAM BEHAVIORAL PIPELINE</text>
+
+      {/* Pipeline Stages */}
+      <g transform="translate(45, 335)">
+        {/* Step A */}
+        <rect x="0" y="0" width="220" height="50" rx="6" fill="var(--academic-card-bg)" stroke="var(--academic-card-border)" />
+        <text x="110" y="24" text-anchor="middle" fill="var(--sl-color-gray-1)" font-size="11" font-weight="600">Host JSON Storage</text>
+        <text x="110" y="40" text-anchor="middle" fill="var(--sl-color-gray-4)" font-size="9.5">Raw Execution Telemetry</text>
+
+        {/* Arrow A -> B */}
+        <line x1="225" y1="25" x2="255" y2="25" stroke="var(--sl-color-accent)" stroke-width="2" marker-end="url(#cuckoo-arrow)" />
+
+        {/* Step B */}
+        <rect x="260" y="0" width="220" height="50" rx="6" fill="var(--academic-card-bg)" stroke="var(--academic-card-border)" />
+        <text x="370" y="24" text-anchor="middle" fill="var(--sl-color-gray-1)" font-size="11" font-weight="600">Signature Parser</text>
+        <text x="370" y="40" text-anchor="middle" fill="var(--sl-color-gray-4)" font-size="9.5">Extracted Behavioral Calls</text>
+
+        {/* Arrow B -> C */}
+        <line x1="485" y1="25" x2="515" y2="25" stroke="var(--sl-color-accent)" stroke-width="2" marker-end="url(#cuckoo-arrow)" />
+
+        {/* Step C */}
+        <rect x="520" y="0" width="230" height="50" rx="6" fill="var(--sl-color-accent-low)" stroke="var(--sl-color-accent)" />
+        <text x="635" y="24" text-anchor="middle" fill="var(--sl-color-accent)" font-size="11" font-weight="700">Triggered Signatures</text>
+        <text x="635" y="40" text-anchor="middle" fill="var(--sl-color-accent)" font-size="9.5">Structured Input for ATT&amp;CK Mapping</text>
+      </g>
+    </svg>
+  </div>
+</WorkflowDiagram>
+
+
+
+---
+
+## Host and Guest Virtual Machines
+
+The host and guest machines have separate responsibilities in the analysis process.
+
+### Host Machine
+The host manages the analysis workflow. Its responsibilities include:
+1. **Sample Ingestion:** Receiving malware samples for analysis.
+2. **Task Scheduling:** Maintaining the task queue and scheduling analysis jobs.
+3. **Execution Assignment:** Assigning samples to the configured guest analyzer.
+4. **Artifact Storage:** Storing execution evidence and analysis reports.
+5. **Downstream Integration:** Providing the reports required for subsequent parsing and processing.
+
+### Guest Virtual Machine
+The guest provides the isolated environment in which the sample is executed. Its responsibilities include:
+1. **OS Environment:** Running the configured guest operating system.
+2. **Payload Execution:** Executing the sample through the Cuckoo analyzer.
+3. **Runtime Monitoring:** Collecting the execution information supported by the configured monitoring components.
+4. **Telemetry Return:** Returning the collected evidence through the guest agent.
+5. **Task Isolation:** Supporting the controlled execution of individual analysis tasks.
+
+The testbed uses Oracle VM VirtualBox [TR-4] as the virtualization platform, with the host running the Cuckoo scheduler and each sample executed in an isolated guest virtual machine.
+
+A reproducible experiment should document the Cuckoo version, host operating system, guest operating system, hypervisor version, guest snapshot, network configuration, and execution-time limits. These values are environment-specific and should not be assumed if they have not been verified.
+
+---
+
+## Sample Submission and Execution
+
+The project follows a sequence of sample submission, scheduled execution, monitoring, and report collection.
+
+### Stage 1: Sample Submission
+The analyst submits malware samples through the Cuckoo command-line interface. The host registers each analysis task and places it in the task queue.
+
+### Stage 2: Task Scheduling
+The Cuckoo scheduler assigns queued samples one at a time to the analyzer on the guest machine. The Guest Manager monitors the analyzer's state and signals the scheduler when the guest is ready for the next task.
+
+### Stage 3: Sample Execution
+The analyzer executes the sample inside the guest virtual machine. During execution, configured monitoring components collect behavioral evidence, which may include process activity, API calls, file-system operations, registry changes, and other observable events. The precise events available depend on the guest configuration, analyzer, monitoring components, and sample behavior.
+
+### Stage 4: Telemetry Collection
+The guest-side agent reports execution information to the host. The project presentation identifies execution logs and affected files among the collected outputs. The host stores the resulting evidence for subsequent processing. This approach separates malware execution from the later analysis of the collected reports.
+
+### Stage 5: Analysis Completion
+After the task completes or reaches its configured execution limit, Cuckoo finalizes the analysis outputs supported by the deployment. The generated reports are then available for parsing by the project's downstream modules. The project should record its actual timeout and other execution parameters, since these settings influence the behaviors observed during analysis.
+
+---
+
+## Report Generation
+
+Cuckoo generates reports and supporting artifacts that summarize the outcome of a sample's execution. The exact content depends on the installed version and configured analysis modules. Cuckoo documentation describes outputs such as JSON and HTML reports, analysis logs, process logs, dropped files, network captures, and screenshots [TR-3].
+
+The project uses the generated JSON analysis report as a primary input for downstream processing. The report includes available execution metadata and sample-related information, such as timestamps, analysis duration, sample identifiers, category or type, virtual-machine details, platform information, runtime options, and an aggregated threat score [19].
+
+### Report Parsing
+The project processes the generated reports programmatically to retrieve the relevant fields across samples. In particular, the signature-processing stage extracts the list of triggered signatures and attributes such as:
+- **Signature name**
+- **Signature identifier**, when available
+- **Severity score**
+- **Mark count** or related signature metadata, where available
+- **Relevant behavioral evidence** associated with the signature
+
+These extracted attributes form a structured representation of the behavior observed during execution. The representation is then used by subsequent stages to associate behavior with MITRE ATT&CK techniques and candidate defensive mechanisms.
+
+### Output of the Parsing Stage
+The output is a structured collection of observed signatures and associated metadata. This makes it possible to process multiple reports consistently and organize the information required by the project's impact quantification and defense-assessment modules.
+
+The parser preserves sample identifiers and provenance so that each extracted signature can be traced back to its source analysis report. Missing fields are handled explicitly and are not interpreted as evidence that a behavior did not occur.
+
+---
+
+## Safety and Analysis Boundaries
+
+Malware analysis requires isolation and controlled handling because samples may modify files, create processes, communicate over networks, or attempt to interfere with the analysis environment.
+
+The project uses an isolated guest virtual machine as the execution environment. The testbed follows these isolation requirements:
+
+1. **Network containment:** Restrict or simulate network access so that a sample cannot freely communicate with external systems or other networks.
+2. **Separation from production systems:** Do not execute untrusted samples on a production workstation or a machine containing sensitive data.
+3. **Controlled file transfer:** Restrict shared folders, clipboard sharing, drag-and-drop, and other host–guest integration features that could allow unintended transfers.
+4. **Snapshot restoration:** Return the guest to a known clean state between analyses when the virtualization configuration supports this.
+5. **Controlled access to artifacts:** Store samples, reports, dropped files, and network captures in an access-controlled location.
+6. **Execution monitoring:** Record analysis failures, timeouts, and incomplete reports so that missing evidence can be distinguished from a successfully completed observation.
+7. **Isolation verification:** Confirm the configured network and virtualization boundaries before conducting analysis.
+
+
+
+---
+
+## Analysis Limitations
+
+The reliability of the collected evidence depends on the sample, the execution environment, the monitoring configuration, and the duration of the analysis. Some malware may behave differently in a virtualized environment or may not execute its primary functionality during the observation window.
+
+The resulting report therefore represents the behavior observed under the configured analysis conditions. It should not be treated as a complete description of every possible capability of the sample. This limitation is important when the extracted signatures are used for ATT&CK mapping, impact quantification, and residual-severity estimation.
+
+---
+
+## References
+
+
+<div class="references-list">
+  <ReferenceItem 
+    number={2} 
+    authors="M. Egele, T. Scholte, E. Kirda, and C. Kruegel" 
+    title="A survey on automated dynamic malware-analysis techniques and tools" 
+    venue="ACM Computing Surveys, vol. 44, no. 2, Art. no. 6, pp. 1–42" 
+    year={2012} 
+    doi="10.1145/2089125.2089126" 
+  />
+  <ReferenceItem 
+    number={19} 
+    authors="A. Walker, M. F. Amjad, and S. Sengupta" 
+    title="Cuckoo’s malware threat scoring and classification: Friend or foe?" 
+    venue="Proc. IEEE 9th Annual Computing and Communication Workshop and Conference (CCWC), Las Vegas, NV, USA" 
+    year={2019} 
+    doi="10.1109/CCWC.2019.8666454" 
+  />
+</div>
+
+**Technical resources:** [TR-3] [Cuckoo Sandbox documentation](https://cuckoo.readthedocs.io/en/latest/) · [TR-4] [Oracle VM VirtualBox documentation](https://docs.oracle.com/en/virtualization/virtualbox/)
+
+<div class="academic-callout" style="margin: 1.5rem 0; padding: 1rem 1.25rem;">
+  <p style="margin: 0; font-size: 0.85rem; color: var(--sl-color-gray-2); line-height: 1.55;">
+    <strong>Project source:</strong> Phase 1 Panel Review 2 presentation (30 March 2026), slides 16–17: the VM-based testbed, command-line submission, scheduler, Guest Manager and agent, and programmatic signature parsing. Later details (Cuckoo, VirtualBox, JSON report fields) come from the Phase 2 implementation.
+  </p>
+</div>

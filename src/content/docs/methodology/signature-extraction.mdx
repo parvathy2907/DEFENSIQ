@@ -1,0 +1,272 @@
+---
+title: "Behavioral Signature Extraction"
+description: "Processing dynamic Cuckoo sandbox reports, extracting triggered signatures, attributes, API evidence, and producing structured behavioral records for ATT&CK mapping."
+---
+
+import PageIntro from '../../../components/PageIntro.astro';
+import WorkflowDiagram from '../../../components/WorkflowDiagram.astro';
+
+<PageIntro 
+  subtitle="Algorithmic parsing of raw dynamic telemetry traces into normalized, structured behavioral signatures." 
+  note="This stage bridges raw Cuckoo Sandbox JSON execution reports with downstream attack characterization, ATT&CK mapping, and residual-severity evaluation."
+/>
+
+Behavioral signature extraction is the process of identifying and structuring the malicious behaviors observed during dynamic malware analysis. In this project, Cuckoo Sandbox generates JSON analysis reports containing execution metadata and behavioral evidence. These reports are processed programmatically to retrieve triggered signatures and their relevant attributes.
+
+The extracted information provides the input for subsequent MITRE ATT&CK technique mapping, defense mapping, signature impact quantification, and residual-severity estimation.
+
+---
+
+## Cuckoo Report Processing
+
+Each analyzed malware sample produces a JSON analysis report that serves as the primary input for report processing. The report contains available execution metadata, sample identification information, virtual-machine details, platform information, runtime options, and an aggregated threat score.
+
+The report-processing module reads these JSON files and extracts the fields required by the project. It also retrieves the triggered signatures and associated attributes used to characterize the observed malware behaviors.
+
+The processing workflow consists of the following steps:
+
+1. **Load the report:** Read the JSON report generated after sandbox analysis.
+2. **Extract metadata:** Retrieve available timestamps, execution duration, sample identity, platform details, runtime options, and aggregated threat score.
+3. **Retrieve triggered signatures:** Extract the signatures recorded by Cuckoo during the analysis.
+4. **Extract signature attributes:** Obtain available information such as signature name, severity score, and mark count.
+5. **Prepare structured records:** Organize the extracted information for subsequent attack characterization and defense evaluation.
+
+:::note[Explicit Missing-Field Handling]
+The processing module handles missing fields and incomplete reports explicitly. An absent field is recorded as missing; it is never read as evidence that a behavior did not occur.
+:::
+
+---
+
+## Triggered Signatures
+
+For a sample *h*, the parser produces the set of triggered signatures S<sub>h</sub> = \{σ<sub>1</sub>, …, σ<sub>N</sub>\}, together with the API, registry, file and network behaviour recorded in the report. Each σ<sub>k</sub> is then scored for impact and mapped to ATT&CK, mitigations and D3FEND in Stage II.
+
+A triggered signature represents a behavioral pattern identified by Cuckoo during sample analysis. Each signature provides information about a particular activity or condition observed during execution.
+
+The project retrieves the triggered signatures from the generated analysis reports and extracts their relevant attributes. These signatures provide the behavioral representation used in subsequent attack–defense analysis.
+
+Depending on the signatures triggered by a sample, the extracted behavior may relate to areas such as:
+
+<div class="academic-feature-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin: 1.5rem 0;">
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-accent);">📁</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">File-System Activity</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Operations involving file creation, modification, deletion, and directory traversal.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-tech);">⚙️</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Process Activity</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Process creation, process hollowing, injection, and execution hierarchy tracking.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-purple);">🗝️</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Registry Activity</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Modifications to Windows registry locations (Run keys, service registrations, persistence).</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-orange);">🧠</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Memory-Related Behavior</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Memory allocation, protection operations, and buffer manipulation observed by signatures.</p>
+  </div>
+  <div class="academic-feature-card" style="grid-column: 1 / -1;">
+    <div class="feature-icon" style="color: #ef4444;">🛡️</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Ransomware-Related Behavior</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Actions associated with data encryption, system recovery inhibition (e.g., volume shadow copy deletion), or ransom communication when detected by the configured signatures.</p>
+  </div>
+</div>
+
+These categories describe possible behavioral areas; they do not imply that every sample exhibits all of them. The actual signature set depends on the behavior observed during execution and the signatures available in the configured Cuckoo environment.
+
+---
+
+## APIs and Behavioral Evidence
+
+Application programming interface (API) calls provide information about operations performed by a program during execution. When API information is available in the analysis report or associated signature logic, it can help explain why a behavioral signature was triggered.
+
+The project extracts APIs, execution actions, and malicious behavioral indicators from Cuckoo reports as part of its behavior-analysis workflow. This information helps characterize the actions associated with a triggered signature.
+
+For example, a signature that monitors memory allocation and protection operations can provide evidence of a process manipulating memory permissions. Such behavior may be relevant to unpacking or code-loading activity, although an observation alone does not establish malicious intent.
+
+The extracted evidence is then used to associate the observed behavior with MITRE ATT&CK techniques. The mapping is based on the behavior and its supporting evidence, not on an API name or signature description alone.
+
+:::note[Observation Boundary]
+The exact APIs and behavioral fields available depend on the report and configured analysis components. The project does not assume that every signature contains a complete API sequence or all relevant execution arguments.
+:::
+
+---
+
+## Signature Attributes
+
+Each triggered signature is represented using the attributes available in the Cuckoo report and the project's signature-processing logic.
+
+| Attribute | Description |
+|:---|:---|
+| **Signature ID** | Identifier of the signature, when available. |
+| **Signature Name** | Name assigned to the triggered behavioral signature. |
+| **Severity Score (V<sub>x</sub>)** | Cuckoo's own severity value for the signature. It is the input to MAGIC impact scoring and is not the same as the impact score A<sub>k</sub> or the IS bound used for residual severity. |
+| **Mark Count** | Count of marked events or related signature metadata, where available. |
+| **Associated APIs** | API names associated with the behavior, when available. |
+| **Behavioral Evidence** | Relevant execution actions or indicators extracted from the report, where available. |
+
+Signature ID, signature name, severity score, and mark count are documented attributes in the project's report-processing workflow. Associated APIs and behavioral evidence are included when available from the relevant reports or signature records.
+
+These attributes can be represented using the following conceptual structure:
+
+```text
+Signature = {ID, Name, Severity Score, Mark Count, Associated Behavioral Evidence}
+```
+
+The structure describes the information retained during extraction. It does not introduce additional confidence scores or severity weights that have not been defined in the implementation.
+
+---
+
+## Structured Output
+
+The output of the extraction stage is a structured representation of the analysis report and its triggered signatures. This allows the project to process multiple samples consistently and pass the extracted data to downstream components.
+
+The structure below shows the fields of each extracted record.
+
+```json
+{
+  "sample_metadata": {
+    "sample_id": null,
+    "category": null,
+    "type": null,
+    "analysis_timestamp": null,
+    "execution_duration": null,
+    "platform_information": null,
+    "runtime_options": null,
+    "aggregated_threat_score": null
+  },
+  "extracted_signatures": [
+    {
+      "signature_id": null,
+      "signature_name": null,
+      "severity_score": null,
+      "mark_count": null,
+      "associated_apis": [],
+      "behavioral_evidence": []
+    }
+  ]
+}
+```
+
+:::note[Schema Integrity]
+The `null` values and empty arrays shown here are placeholders, not observations. Optional fields are filled only when the source report contains the corresponding information.
+
+ATT&CK technique identifiers and defense mappings are added in later stages of the workflow; they are not extracted from the Cuckoo report.
+:::
+
+---
+
+## Example Input and Output
+
+### Input: Cuckoo Analysis Report
+
+The input is the JSON report generated after analyzing a malware sample. It contains the metadata and execution information recorded by the configured sandbox.
+
+The report-processing module reads the relevant fields and retrieves the triggered signatures and their attributes.
+
+### Processing
+
+The report is parsed to extract:
+
+1. Sample and execution metadata.
+2. Triggered signature records.
+3. Signature names and identifiers.
+4. Severity scores and mark counts, where available.
+5. Associated API information and behavioral evidence, where available.
+
+The extracted fields are organized into structured records suitable for downstream processing.
+
+### Output: Structured Behavioral Records
+
+The output contains the extracted sample metadata and triggered signatures. These records serve as the inputs for the project's attack characterization and impact-quantification stages.
+
+A separate mapping stage associates the observed behavior with MITRE ATT&CK techniques and identifies candidate defensive mechanisms through the project's ATT&CK–D3FEND mapping process.
+
+
+---
+
+## Figure 3.4: Cuckoo Report Processing and Behavioral Signature Extraction
+
+<WorkflowDiagram 
+  title="Cuckoo Report Processing and Behavioral Signature Extraction Pipeline" 
+  figureNumber="Figure 3.4"
+  status="Extraction Pipeline"
+  caption="The diagram illustrates how a raw Cuckoo analysis report is processed into structured behavioral records for subsequent attack characterization and defense evaluation."
+>
+  <div style="width: 100%; max-width: 900px; padding: 1.5rem 0.5rem; display: flex; justify-content: center;">
+    <svg viewBox="0 0 920 280" width="100%" height="auto" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow: visible;">
+      <defs>
+        <marker id="ext-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--sl-color-accent)" />
+        </marker>
+        <marker id="tech-arrow-ext" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--sl-color-tech)" />
+        </marker>
+      </defs>
+
+      {/* Row 1: 3 Stages */}
+      {/* Stage 1: Cuckoo JSON Report */}
+      <rect x="20" y="20" width="250" height="90" rx="8" fill="var(--academic-card-bg)" stroke="var(--academic-card-border)" stroke-width="1.5" />
+      <rect x="30" y="30" width="60" height="20" rx="4" fill="rgba(56, 189, 248, 0.15)" stroke="var(--sl-color-accent)" stroke-width="1" />
+      <text x="60" y="44" text-anchor="middle" fill="var(--sl-color-accent)" font-size="10" font-weight="700">INPUT</text>
+      <text x="30" y="70" fill="var(--sl-color-gray-1)" font-size="13" font-weight="600">Cuckoo JSON Report</text>
+      <text x="30" y="92" fill="var(--sl-color-gray-4)" font-size="11">Raw sandbox execution telemetry</text>
+
+      {/* Arrow 1 -> 2 */}
+      <line x1="270" y1="65" x2="330" y2="65" stroke="var(--sl-color-accent)" stroke-width="2" marker-end="url(#ext-arrow)" />
+
+      {/* Stage 2: Metadata Extraction */}
+      <rect x="335" y="20" width="250" height="90" rx="8" fill="var(--academic-card-bg)" stroke="var(--academic-card-border)" stroke-width="1.5" />
+      <rect x="345" y="30" width="65" height="20" rx="4" fill="rgba(45, 212, 191, 0.15)" stroke="var(--sl-color-tech)" stroke-width="1" />
+      <text x="377" y="44" text-anchor="middle" fill="var(--sl-color-tech)" font-size="10" font-weight="700">STEP 1</text>
+      <text x="345" y="70" fill="var(--sl-color-gray-1)" font-size="13" font-weight="600">Metadata Extraction</text>
+      <text x="345" y="92" fill="var(--sl-color-gray-4)" font-size="11">Timestamps, duration, VM info, threat score</text>
+
+      {/* Arrow 2 -> 3 */}
+      <line x1="585" y1="65" x2="645" y2="65" stroke="var(--sl-color-accent)" stroke-width="2" marker-end="url(#ext-arrow)" />
+
+      {/* Stage 3: Triggered Signature Extraction */}
+      <rect x="650" y="20" width="250" height="90" rx="8" fill="var(--academic-card-bg)" stroke="var(--academic-card-border)" stroke-width="1.5" />
+      <rect x="660" y="30" width="65" height="20" rx="4" fill="rgba(168, 85, 247, 0.15)" stroke="var(--sl-color-purple)" stroke-width="1" />
+      <text x="692" y="44" text-anchor="middle" fill="var(--sl-color-purple)" font-size="10" font-weight="700">STEP 2</text>
+      <text x="660" y="70" fill="var(--sl-color-gray-1)" font-size="13" font-weight="600">Triggered Signatures</text>
+      <text x="660" y="92" fill="var(--sl-color-gray-4)" font-size="11">Retrieve observed behavioral patterns</text>
+
+      {/* Flow arrow down from Stage 3 to Stage 4 */}
+      <path d="M 775 110 L 775 140 L 775 160" stroke="var(--sl-color-accent)" stroke-width="2" marker-end="url(#ext-arrow)" />
+
+      {/* Row 2: 3 Stages in reverse direction (or direct right-to-left / clean linear) */}
+      {/* Let's route Row 2: Stage 4 (Right), Stage 5 (Middle), Stage 6 (Left) */}
+
+      {/* Stage 4: Signature Attribute Processing */}
+      <rect x="650" y="165" width="250" height="90" rx="8" fill="var(--academic-card-bg)" stroke="var(--academic-card-border)" stroke-width="1.5" />
+      <rect x="660" y="175" width="65" height="20" rx="4" fill="rgba(245, 158, 11, 0.15)" stroke="var(--sl-color-orange)" stroke-width="1" />
+      <text x="692" y="189" text-anchor="middle" fill="var(--sl-color-orange)" font-size="10" font-weight="700">STEP 3</text>
+      <text x="660" y="215" fill="var(--sl-color-gray-1)" font-size="13" font-weight="600">Attribute Processing</text>
+      <text x="660" y="237" fill="var(--sl-color-gray-4)" font-size="11">Name, severity, mark count &amp; API evidence</text>
+
+      {/* Arrow 4 -> 5 */}
+      <line x1="650" y1="210" x2="590" y2="210" stroke="var(--sl-color-accent)" stroke-width="2" marker-end="url(#ext-arrow)" />
+
+      {/* Stage 5: Structured Behavioral Records */}
+      <rect x="335" y="165" width="250" height="90" rx="8" fill="var(--academic-card-bg)" stroke="var(--sl-color-accent)" stroke-width="1.8" />
+      <rect x="345" y="175" width="65" height="20" rx="4" fill="rgba(56, 189, 248, 0.2)" stroke="var(--sl-color-accent)" stroke-width="1" />
+      <text x="377" y="189" text-anchor="middle" fill="var(--sl-color-accent)" font-size="10" font-weight="700">OUTPUT</text>
+      <text x="345" y="215" fill="var(--sl-color-accent)" font-size="13" font-weight="700">Structured Records</text>
+      <text x="345" y="237" fill="var(--sl-color-gray-3)" font-size="11">Normalized JSON data representation</text>
+
+      {/* Arrow 5 -> 6 */}
+      <line x1="335" y1="210" x2="275" y2="210" stroke="var(--sl-color-tech)" stroke-width="2" marker-end="url(#tech-arrow-ext)" />
+
+      {/* Stage 6: ATT&CK Mapping */}
+      <rect x="20" y="165" width="250" height="90" rx="8" fill="var(--academic-card-bg)" stroke="var(--academic-card-border)" stroke-width="1.5" />
+      <rect x="30" y="175" width="90" height="20" rx="4" fill="rgba(45, 212, 191, 0.15)" stroke="var(--sl-color-tech)" stroke-width="1" />
+      <text x="75" y="189" text-anchor="middle" fill="var(--sl-color-tech)" font-size="10" font-weight="700">DOWNSTREAM</text>
+      <text x="30" y="215" fill="var(--sl-color-gray-1)" font-size="13" font-weight="600">ATT&amp;CK Mapping</text>
+      <text x="30" y="237" fill="var(--sl-color-gray-4)" font-size="11">Technique &amp; D3FEND defense linkage</text>
+    </svg>
+  </div>
+</WorkflowDiagram>

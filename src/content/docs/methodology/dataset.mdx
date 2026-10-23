@@ -1,0 +1,152 @@
+---
+title: "Dataset Construction"
+description: "Empirical malware dataset curation, sample validation, SHA-256 deduplication, classification, and report parsing."
+---
+
+import PageIntro from '../../../components/PageIntro.astro';
+import DataTable from '../../../components/DataTable.astro';
+
+<PageIntro 
+  subtitle="Empirical malware sample curation, VirusTotal authenticity validation, SHA-256 deduplication, and JSON report metadata extraction." 
+/>
+
+The project uses a collection of malware samples to study ransomware-related behaviors and support the development of the proposed defense optimization framework. The dataset is processed through sample validation, duplicate removal, malware classification, sandbox execution, and behavioral report extraction.
+
+---
+
+## Dataset Sources
+
+The project has collected approximately **3,000 malware samples** from multiple sources, including VirusTotal, VirusShare, and samples provided by the project guide.
+
+The collected samples form the initial repository for malware analysis. The dataset is organized to support sample identification, behavioral analysis, and the extraction of triggered signatures for subsequent attack–defense mapping.
+
+---
+
+## Sample Validation and Deduplication
+
+The project uses VirusTotal information to validate the authenticity of collected samples. Duplicate samples are removed using their SHA-256 cryptographic hashes.
+
+SHA-256 hashing provides a consistent identifier for comparing files and detecting identical samples within the repository. Removing duplicate files helps avoid repeatedly analyzing identical binaries and reduces unnecessary duplication in the dataset.
+
+The documented preparation process includes:
+
+1. **Collection:** Collecting malware samples from the identified sources.
+2. **Authenticity Validation:** Checking sample authenticity using VirusTotal information.
+3. **Deduplication:** Computing SHA-256 hashes to identify and remove duplicate samples.
+4. **Repository Organization:** Organizing the remaining samples for further analysis.
+
+---
+
+## Malware Classification
+
+The collected samples are segregated according to their available malware-class information. Online antivirus engines are also used as part of the sample-classification process.
+
+This classification organizes the malware repository and identifies samples for analysis. Each sample keeps its identifier and class label, so every analysis report can be traced back to the sample it came from.
+
+---
+
+## Metadata and Data Fields
+
+After sandbox analysis, the generated JSON reports are programmatically parsed to extract relevant metadata and behavioral information.
+
+The parser extracts the following information from each report:
+
+<DataTable 
+  headers={["Data Category", "Extracted Information"]}
+  caption="Table 3.2: Extracted execution telemetry and behavioral signature attributes from Cuckoo JSON reports."
+>
+  <tr>
+    <td><strong>Execution Metadata</strong></td>
+    <td>Analysis timestamps and duration</td>
+  </tr>
+  <tr>
+    <td><strong>Sample Identification</strong></td>
+    <td>Sample ID, category, and type</td>
+  </tr>
+  <tr>
+    <td><strong>Environment Information</strong></td>
+    <td>Virtual-machine and machine details</td>
+  </tr>
+  <tr>
+    <td><strong>Platform Information</strong></td>
+    <td>Information about the analysis platform</td>
+  </tr>
+  <tr>
+    <td><strong>Runtime Configuration</strong></td>
+    <td>Options used for the analysis</td>
+  </tr>
+  <tr>
+    <td><strong>Threat Assessment</strong></td>
+    <td>Aggregated threat score</td>
+  </tr>
+  <tr>
+    <td><strong>Behavioral Signatures</strong></td>
+    <td>List of triggered signatures</td>
+  </tr>
+  <tr>
+    <td><strong>Signature Attributes</strong></td>
+    <td>Signature name, severity score, and mark count, where available</td>
+  </tr>
+</DataTable>
+
+These fields support the identification of analyzed samples and the extraction of behavioral signatures. The resulting data are used by the project's downstream modules for ATT&CK technique mapping, signature impact quantification, and residual-severity assessment.
+
+---
+
+## Inclusion and Exclusion Criteria
+
+The documented dataset preparation process includes sample collection, VirusTotal-based validation, SHA-256 duplicate removal, and segregation according to malware-class information.
+
+The experimental dataset consists of the samples whose analysis reports provide usable behavioral evidence and whose signatures map to at least one candidate D3FEND defense. These samples form the candidate dataset D of 17 samples and 2,823 signature–defense rows used by the optimization stage.
+
+---
+
+## Dataset Statistics
+
+Approximately 3,000 malware samples were collected. After sandbox analysis, signature extraction, impact quantification and ATT&CK–D3FEND mapping, the samples used for optimization form the **candidate dataset D**: one row (h, σ<sub>k</sub>, d, A<sub>k</sub>) for every sample h, triggered signature σ<sub>k</sub> and candidate defense d, with the signature's impact score A<sub>k</sub>. The current candidate dataset contains **17 samples and 2,823 rows**.
+
+The following table summarizes the dataset:
+
+<DataTable 
+  headers={["Attribute", "Documented Information"]}
+  caption="Table 3.3: Dataset construction summary across curation stages."
+>
+  <tr>
+    <td><strong>Approximate Sample Collection</strong></td>
+    <td>Approximately 3,000 malware samples</td>
+  </tr>
+  <tr>
+    <td><strong>Sources</strong></td>
+    <td>VirusTotal, VirusShare, and samples provided by the project guide</td>
+  </tr>
+  <tr>
+    <td><strong>Sample Validation</strong></td>
+    <td>VirusTotal information</td>
+  </tr>
+  <tr>
+    <td><strong>Duplicate Removal</strong></td>
+    <td>SHA-256 cryptographic hashing</td>
+  </tr>
+  <tr>
+    <td><strong>Malware Classification</strong></td>
+    <td>Available malware-class information and online antivirus-engine scanning</td>
+  </tr>
+  <tr>
+    <td><strong>Behavioral Analysis</strong></td>
+    <td>Cuckoo Sandbox</td>
+  </tr>
+  <tr>
+    <td><strong>Primary Analysis Output</strong></td>
+    <td>JSON analysis reports</td>
+  </tr>
+  <tr>
+    <td><strong>Behavioral Information Extracted</strong></td>
+    <td>Triggered signatures and associated attributes</td>
+  </tr>
+  <tr>
+    <td><strong>Candidate dataset D</strong></td>
+    <td>17 samples, 2,823 rows of (h, σ<sub>k</sub>, d, A<sub>k</sub>)</td>
+  </tr>
+</DataTable>
+
+
