@@ -1,0 +1,185 @@
+---
+title: "System Architecture"
+description: "Four-stage architecture of the framework: behavioural data acquisition, impact quantification and ATT&CK–D3FEND mapping, cooperative co-evolutionary defense optimisation, and output and evaluation."
+---
+
+import PageIntro from '../../../components/PageIntro.astro';
+import WorkflowDiagram from '../../../components/WorkflowDiagram.astro';
+import DataTable from '../../../components/DataTable.astro';
+
+<PageIntro 
+  subtitle="The framework runs in four stages. Stage I turns malware samples into triggered behavioural signatures. Stage II scores each signature's impact and maps it through ATT&CK techniques and mitigations to a pool of candidate D3FEND defenses. Stage III searches those pools with a Cooperative Co-Evolutionary Algorithm, scoring each candidate combination with residual-severity estimates. Stage IV reports the best combination and evaluates it against a greedy baseline."
+/>
+
+## High-Level Architecture
+
+<WorkflowDiagram 
+  title="Framework Architecture" 
+  figureNumber="Figure 3.2"
+  status="Phase 2 design"
+  caption="The four stages of the framework. Stage I acquires behavioural data; Stage II quantifies signature impact and builds the candidate dataset through ATT&CK–D3FEND mapping; Stage III runs the cooperative co-evolutionary search with the Reduced_Severity module; Stage IV reports the optimal defense strategy and evaluates it."
+>
+  <a class="dq-diagram" href="/images/architecture.png" target="_blank" rel="noopener noreferrer" aria-label="Open the architecture diagram at full size">
+    <img class="img-light" src="/images/architecture.png" alt="Framework architecture in four stages. I. Behavioural Data Acquisition: a malware corpus of about 3,000 samples from VirusShare and VirusTotal is validated and de-duplicated with SHA-256 hashing and AV-engine class labels, analysed in Cuckoo Sandbox (host scheduler and isolated guest VM), parsed from JSON reports into API, registry, file and network behaviour, and reduced to the triggered signatures S_h of each sample h. II. Impact Quantification and ATT&CK–D3FEND Mapping: band placement and mutual-information refinement give each signature an impact score A_k in [1, 35]; each signature is mapped to an ATT&CK technique (e.g. T1129), the technique to a mitigation ID (e.g. M1038), and the mitigation to a pool P_k of D3FEND defenses (e.g. D3-EAL, D3-PSEP), forming candidate dataset D of 17 samples and 2,823 rows. III. Cooperative Co-Evolutionary Defense Optimisation: population initialisation creates one sub-population per signature; selection and variation pick one collaborator per sub-population to form candidate combination C; fitness evaluation queries the Reduced_Severity module (CSV mode with a pre-computed RS table, or LLM mode with Gemini 2.5 Flash-Lite) for RS in [0, 10] with FULL, PARTIAL or NONE labels and computes F(C) = (IS − RA) / IS; credit assignment updates each collaborator's history and usage count; elitist replacement keeps the best C* and F* and a stagnation counter; the loop repeats until coverage and stagnation reach the patience limit or the generation limit is reached. IV. Output and Evaluation: the optimal defense strategy C* with fitness F*, the Malware Severity Score before (IS) and after (RA of C*), a comparison of CCEA against a greedy baseline, and statistical validation with the Shapiro–Wilk test and the Wilcoxon signed-rank test at alpha 0.05." loading="lazy" />
+    <img class="img-dark" src="/images/architecture-dark.png" alt="Framework architecture in four stages. I. Behavioural Data Acquisition: a malware corpus of about 3,000 samples from VirusShare and VirusTotal is validated and de-duplicated with SHA-256 hashing and AV-engine class labels, analysed in Cuckoo Sandbox (host scheduler and isolated guest VM), parsed from JSON reports into API, registry, file and network behaviour, and reduced to the triggered signatures S_h of each sample h. II. Impact Quantification and ATT&CK–D3FEND Mapping: band placement and mutual-information refinement give each signature an impact score A_k in [1, 35]; each signature is mapped to an ATT&CK technique (e.g. T1129), the technique to a mitigation ID (e.g. M1038), and the mitigation to a pool P_k of D3FEND defenses (e.g. D3-EAL, D3-PSEP), forming candidate dataset D of 17 samples and 2,823 rows. III. Cooperative Co-Evolutionary Defense Optimisation: population initialisation creates one sub-population per signature; selection and variation pick one collaborator per sub-population to form candidate combination C; fitness evaluation queries the Reduced_Severity module (CSV mode with a pre-computed RS table, or LLM mode with Gemini 2.5 Flash-Lite) for RS in [0, 10] with FULL, PARTIAL or NONE labels and computes F(C) = (IS − RA) / IS; credit assignment updates each collaborator's history and usage count; elitist replacement keeps the best C* and F* and a stagnation counter; the loop repeats until coverage and stagnation reach the patience limit or the generation limit is reached. IV. Output and Evaluation: the optimal defense strategy C* with fitness F*, the Malware Severity Score before (IS) and after (RA of C*), a comparison of CCEA against a greedy baseline, and statistical validation with the Shapiro–Wilk test and the Wilcoxon signed-rank test at alpha 0.05." loading="lazy" />
+  </a>
+</WorkflowDiagram>
+
+### Architecture Flow
+
+**I. Behavioural Data Acquisition**
+
+1. **Malware corpus:** about 3,000 samples collected from VirusShare and VirusTotal, together with samples provided by the project guide.
+2. **Validation and de-duplication:** samples are validated with VirusTotal information, de-duplicated by SHA-256 hash, and given class labels from AV-engine results.
+3. **Cuckoo Sandbox:** the host scheduler runs each sample in an isolated guest virtual machine.
+4. **JSON report parser:** each report is parsed into API, registry, file and network behaviour.
+5. **Triggered signatures:** each sample *h* yields its signature set S<sub>h</sub> = \{σ<sub>1</sub>, …, σ<sub>N</sub>\}.
+
+**II. Impact Quantification and ATT&CK–D3FEND Mapping**
+
+6. **Impact quantification:** MAGIC band placement and mutual-information refinement give each signature an impact score A<sub>k</sub> ∈ [1, 35].
+7. **ATT&CK mapping:** each signature σ<sub>k</sub> is mapped to an ATT&CK technique t<sub>k</sub> (for example, T1129 Shared Modules).
+8. **Mitigation lookup:** each technique t<sub>k</sub> is linked to its ATT&CK mitigation IDs (for example, M1038 Execution Prevention).
+9. **D3FEND mapping:** each mitigation is mapped to D3FEND defensive techniques, forming the candidate pool P<sub>k</sub> (for example, D3-EAL Executable Allowlisting and D3-PSEP Process Segment Execution Prevention).
+10. **Candidate dataset D:** rows of the form (h, σ<sub>k</sub>, d, A<sub>k</sub>), one per sample, signature and candidate defense. The current dataset holds **17 samples and 2,823 rows**.
+
+**III. Cooperative Co-Evolutionary Defense Optimisation (CCEA)**
+
+11. **Population initialisation:** one sub-population P<sub>k</sub> per signature σ<sub>k</sub>.
+12. **Selection and variation:** one collaborator (defense) is chosen from each sub-population, giving a candidate combination C = \{d<sub>1</sub>, …, d<sub>N</sub>\}.
+13. **Fitness evaluation:** each pair (σ<sub>k</sub>, d<sub>k</sub>) is sent to the Reduced_Severity module, which returns RS<sub>k</sub>; the collaborative fitness is F(C) = (IS − RA) / IS.
+14. **Reduced_Severity module:** returns RS(σ<sub>k</sub>, d<sub>k</sub>) ∈ [0, 10] with a FULL, PARTIAL or NONE label, either from a pre-computed RS table (CSV mode) or from Gemini 2.5 Flash-Lite (LLM mode), selected by a mode toggle.
+15. **Credit assignment:** F(C) is credited to every collaborator in C, updating its fitness history H(d) and usage count c(d). These credits guide later selection.
+16. **Elitist replacement:** the best combination C* and fitness F* are updated when C improves on them, and the stagnation counter *n* is reset; otherwise *n* increases.
+17. **Termination:** the search stops when every candidate has been covered and *n* ≥ τ, or when g = G<sub>max</sub>. Otherwise the next generation starts (g ← g + 1).
+
+**IV. Output and Evaluation**
+
+18. **Optimal defense strategy:** C* with fitness F*, one D3FEND defense per signature.
+19. **Malware Severity Score:** MSS<sub>before</sub> = IS and MSS<sub>after</sub> = RA(C*).
+20. **Comparison:** CCEA against a greedy baseline using the same pools and the same RS source.
+21. **Statistical validation:** Shapiro–Wilk test for normality, then the Wilcoxon signed-rank test at α = 0.05.
+
+---
+
+## Notation
+
+<DataTable 
+  headers={["Symbol", "Meaning", "Range"]}
+  caption="Table 3.1: Notation used across the architecture, CCEA and evaluation pages."
+>
+  <tr><td><strong>h</strong></td><td>An analysed malware sample</td><td>17 samples in the candidate dataset</td></tr>
+  <tr><td><strong>S<sub>h</sub></strong></td><td>Triggered signature set of sample h, \{σ<sub>1</sub>, …, σ<sub>N</sub>\}</td><td>N signatures per sample</td></tr>
+  <tr><td><strong>A<sub>k</sub></strong></td><td>MAGIC impact score of signature σ<sub>k</sub></td><td>[1, 35]</td></tr>
+  <tr><td><strong>t<sub>k</sub></strong></td><td>ATT&CK technique mapped to σ<sub>k</sub></td><td>e.g. T1129</td></tr>
+  <tr><td><strong>P<sub>k</sub></strong></td><td>Candidate D3FEND pool (sub-population) for σ<sub>k</sub></td><td>e.g. \{D3-EAL, D3-PSEP\}</td></tr>
+  <tr><td><strong>C</strong></td><td>Candidate combination, one defense d<sub>k</sub> per signature</td><td>d<sub>k</sub> ∈ P<sub>k</sub></td></tr>
+  <tr><td><strong>RS<sub>k</sub></strong></td><td>Reduced (residual) severity of σ<sub>k</sub> under d<sub>k</sub></td><td>[0, 10]</td></tr>
+  <tr><td><strong>IS</strong></td><td>Aggregate impact severity: RMS of normalized A<sub>k</sub></td><td>(0, 1]</td></tr>
+  <tr><td><strong>RA</strong></td><td>Aggregate residual severity: RMS of normalized RS<sub>k</sub></td><td>[0, 1]</td></tr>
+  <tr><td><strong>F(C)</strong></td><td>Collaborative fitness (IS − RA) / IS</td><td>≤ 1; higher is better</td></tr>
+  <tr><td><strong>H(d), c(d)</strong></td><td>Fitness history and usage count of defense d</td><td>Updated by credit assignment</td></tr>
+  <tr><td><strong>n, τ, g, G<sub>max</sub></strong></td><td>Stagnation counter, patience, generation, generation limit</td><td>τ = 20, G<sub>max</sub> = 100</td></tr>
+  <tr><td><strong>MSS</strong></td><td>Malware Severity Score: IS before defenses, RA(C*) after</td><td>[0, 1]</td></tr>
+</DataTable>
+
+---
+
+## System Workflow
+
+The workflow runs through the four stages in order. Each stage hands a structured output to the next, so errors can be traced to the stage where they occur.
+
+### Stage I: Behavioural Data Acquisition
+
+Malware samples are collected, validated and de-duplicated, then executed in a controlled Cuckoo Sandbox environment. The host scheduler assigns each sample to an isolated guest VM, and the resulting JSON reports are parsed into API, registry, file and network behaviour. The output is the set of triggered signatures S<sub>h</sub> for each sample. Details: [Cuckoo Sandbox](/methodology/cuckoo-sandbox/), [Dataset Construction](/methodology/dataset/), [Signature Extraction](/methodology/signature-extraction/).
+
+### Stage II: Impact Quantification and ATT&CK–D3FEND Mapping
+
+Each signature receives an impact score A<sub>k</sub> ∈ [1, 35] through MAGIC band placement and mutual-information refinement. In parallel, the signature is mapped to an ATT&CK technique, the technique to its ATT&CK mitigations, and each mitigation to D3FEND defensive techniques. The result is the candidate dataset D, with one row (h, σ<sub>k</sub>, d, A<sub>k</sub>) for every sample, signature and candidate defense: 17 samples and 2,823 rows in the current dataset. Details: [Impact Quantification](/methodology/impact-quantification/), [ATT&CK Mapping](/methodology/attack-mapping/), [D3FEND Mapping](/methodology/d3fend-mapping/).
+
+A mapped defense is a candidate for evaluation, not proof that the attack will be mitigated.
+
+### Stage III: Cooperative Co-Evolutionary Defense Optimisation
+
+For each sample, CCEA creates one sub-population per signature from its pool P<sub>k</sub>. Each generation it selects one collaborator from every sub-population to form a combination C, asks the Reduced_Severity module for RS<sub>k</sub> of each signature–defense pair, and computes the collaborative fitness F(C). Credit assignment records F(C) against every defense in C, elitist replacement keeps the best combination found, and the loop continues until the termination criterion is met. Details: [CCEA](/methodology/ccea/), [Residual Severity](/methodology/residual-severity/).
+
+### Stage IV: Output and Evaluation
+
+The search returns the best combination C* and its fitness F*. The Malware Severity Score compares the sample's severity before defenses (IS) with its residual severity under C* (RA(C*)). CCEA is compared against a greedy baseline that uses the same pools and RS source, and the paired results are tested with Shapiro–Wilk and then the Wilcoxon signed-rank test at α = 0.05. Details: [Evaluation Plan](/evaluation/evaluation-plan/).
+
+---
+
+## Component Descriptions
+
+### 1. Candidate Dataset and Sub-Populations
+
+The candidate dataset D stores, for each sample, its triggered signatures, their impact scores and their candidate defenses. For the optimization, each signature's pool P<sub>k</sub> becomes a sub-population. The signatures themselves (the population of attack plans) are fixed for the sample being optimized; only the defense choices evolve.
+
+The optimization is constrained by the candidate pools. It cannot select a defense that is not in the pool for that signature.
+
+### 2. Selection and Variation
+
+Selection chooses one collaborator from each sub-population: an untried defense first, otherwise a random defense with exploration probability p<sub>e</sub>, otherwise the defense with the best average credited fitness. Variation then mutates the choice to another defense in the same pool with probability p<sub>m</sub>.
+
+### 3. Reduced_Severity Module
+
+The Reduced_Severity module returns RS(σ<sub>k</sub>, d<sub>k</sub>) ∈ [0, 10] and a mitigation label (FULL, PARTIAL or NONE) for any signature–defense pair. It has two modes behind a toggle:
+
+- **CSV mode:** looks the pair up in a pre-computed RS table. This makes runs fast and exactly repeatable.
+- **LLM mode:** asks Gemini 2.5 Flash-Lite for a validated, structured estimate.
+
+Keeping the module separate means the RS source can be changed without changing the optimizer, and CCEA and the greedy baseline can be run against the same RS source.
+
+### 4. Fitness Evaluation
+
+Fitness evaluation normalizes the impact scores and RS values of the combination, aggregates them by root mean square into IS and RA, and computes F(C) = (IS − RA) / IS. The exact formulas and constants are on the [CCEA page](/methodology/ccea/).
+
+### 5. Credit Assignment
+
+Because the fitness belongs to the whole combination, every collaborator in C is credited with F(C). Each defense keeps a fitness history H(d) and a usage count c(d); the average of its history drives best-so-far selection, and the usage counts show when every candidate has been covered.
+
+### 6. Elitist Replacement and Termination
+
+If F(C) improves on the best fitness F* by more than δ, C becomes the new C* and the stagnation counter *n* resets to 0; otherwise *n* increases by 1. The search stops when every candidate has been covered and *n* ≥ τ, or when the generation limit G<sub>max</sub> is reached.
+
+The output is the best candidate found under the chosen seed, parameters, fitness function and stopping criteria; it is not a guarantee of a globally optimal defense strategy.
+
+---
+
+## Input/Output Descriptions
+
+<DataTable 
+  headers={["Component", "Input", "Output"]}
+  caption="Table 3.2: Data exchanged between the components."
+>
+  <tr><td><strong>Cuckoo Sandbox</strong></td><td>Malware sample and analysis configuration</td><td>JSON behavioural report</td></tr>
+  <tr><td><strong>JSON report parser</strong></td><td>JSON report</td><td>API, registry, file and network behaviour; triggered signatures S<sub>h</sub></td></tr>
+  <tr><td><strong>Impact quantification</strong></td><td>Signature severities and co-occurrence data</td><td>Impact score A<sub>k</sub> ∈ [1, 35]</td></tr>
+  <tr><td><strong>ATT&CK mapping</strong></td><td>Signature and its evidence</td><td>Technique t<sub>k</sub></td></tr>
+  <tr><td><strong>Mitigation lookup</strong></td><td>Technique t<sub>k</sub></td><td>ATT&CK mitigation IDs</td></tr>
+  <tr><td><strong>D3FEND mapping</strong></td><td>Mitigation IDs</td><td>Candidate pool P<sub>k</sub></td></tr>
+  <tr><td><strong>Candidate dataset D</strong></td><td>All of the above</td><td>Rows (h, σ<sub>k</sub>, d, A<sub>k</sub>)</td></tr>
+  <tr><td><strong>Reduced_Severity</strong></td><td>Pair (σ<sub>k</sub>, d<sub>k</sub>)</td><td>RS<sub>k</sub> ∈ [0, 10], FULL / PARTIAL / NONE</td></tr>
+  <tr><td><strong>Fitness evaluation</strong></td><td>A<sub>k</sub> and RS<sub>k</sub> for every signature in C</td><td>F(C)</td></tr>
+  <tr><td><strong>Credit assignment</strong></td><td>F(C) and the collaborators in C</td><td>Updated H(d), c(d)</td></tr>
+  <tr><td><strong>Elitist replacement</strong></td><td>F(C), C*, F*</td><td>Updated C*, F*, stagnation counter n</td></tr>
+  <tr><td><strong>Output and evaluation</strong></td><td>C*, F*, IS, RA(C*), greedy baseline results</td><td>MSS before and after; statistical test results</td></tr>
+</DataTable>
+
+---
+
+## Architecture Boundaries and Assumptions
+
+The architecture separates behavioural evidence, mapping, severity estimation and search, so that errors can be investigated at each stage instead of treating the workflow as one process. The system still depends on the quality of the sandbox observations, the accuracy of the ATT&CK–mitigation–D3FEND mappings, the reliability of the RS estimates, and the fitness function. It does not guarantee that every malware behaviour will be observed or that the recommended combination will prevent every possible attack.
+
+The output is a recommended defense strategy for the evaluated sample and its candidate pools.
+
+---
+
+## Figure Source
+
+<div class="academic-callout" style="margin: 1.5rem 0; padding: 1rem 1.25rem;">
+  <p style="margin: 0; font-size: 0.875rem; line-height: 1.55;">
+    <strong>Source:</strong> Project team's Phase 2 architecture. It extends the Phase 1 architecture (Panel Review 2, slide 14), which showed populations of attack plans and defense plans feeding an impact-evaluation, variation and selection loop. See <a href="/methodology/evolution/">Phase 1 → Phase 2</a>.
+  </p>
+</div>

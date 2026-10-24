@@ -1,0 +1,104 @@
+---
+title: "From Phase 1 to Phase 2"
+description: "How the framework's design changed between the Phase 1 review (March 2026) and the Phase 2 implementation, including crossover and co-evolution."
+---
+
+import PageIntro from '../../../components/PageIntro.astro';
+import WorkflowDiagram from '../../../components/WorkflowDiagram.astro';
+import ReferenceItem from '../../../components/ReferenceItem.astro';
+
+<PageIntro 
+  subtitle="Phase 1 (Panel Review 2, 30 March 2026) proposed an evolutionary algorithm over populations of attack plans and defense plans. Phase 2 implements that idea and adds a concrete impact score, an LLM that scores each defense, and a cooperative search."
+/>
+
+## Phase 1 Design
+
+The Phase 1 architecture (Panel Review 2, slide 14) described an **Evolutionary Decision-Making Framework** with two inputs and one loop:
+
+- An **attack dataset** feeding a **population of attack plans**.
+- A **defense dataset** feeding a **population of defense plans**.
+- An **impact evaluation** step connected to **variation** and **selection**, iterating until it produced an **optimal defense strategy**.
+
+The Phase 1 objectives were to construct an attack dataset from analyzed ransomware samples, to build a corresponding defense dataset by mapping defenses to adversarial techniques with MITRE ATT&CK and D3FEND, and to design a co-evolutionary method that maps defense mechanisms against specific attack patterns.
+
+<WorkflowDiagram 
+  title="Phase 1 Evolutionary Decision-Making Framework" 
+  figureNumber="Figure 3.1"
+  status="Phase 1 design"
+  caption="System architecture as presented at Phase 1 Panel Review 2 (slide 14). Populations of attack plans and defense plans, drawn from the attack and defense datasets, feed an impact-evaluation, variation and selection loop that outputs the optimal defense strategy."
+>
+  <div class="dq-diagram mid invert">
+    <img src="/images/phase1-architecture.png" alt="Phase 1 architecture: the attack dataset feeds a population of attack plans and the defense dataset feeds a population of defense plans; both connect to impact evaluation, which exchanges candidates with variation and selection in a loop inside the evolutionary decision-making framework, producing the optimal defense strategy." loading="lazy" />
+  </div>
+</WorkflowDiagram>
+
+---
+
+## Phase 2 Design
+
+Phase 2 keeps the same structure and makes each part concrete. The attack side becomes the signatures actually observed in Cuckoo Sandbox, each with a MAGIC impact score. The defense side becomes one D3FEND candidate pool per signature. Impact evaluation becomes a reduced-severity estimate RS ∈ [0, 10] per attack–defense pair, taken from a pre-computed table or from Gemini 2.5 Flash-Lite, combined in the collaborative fitness F(C) = (IS − RA) / IS. The variation-and-selection loop becomes the CCEA search. The full Phase 2 architecture is on the [System Architecture](/methodology/architecture/) page.
+
+| | Phase 1 design | Phase 2 design (current) |
+|:---|:---|:---|
+| **Attack side** | Population of attack plans from the attack dataset | Population of attack plans fixed to the observed signatures, each with impact score A<sub>k</sub> on 1–35 |
+| **Defense side** | Population of defense plans from the defense dataset | One candidate defense pool P<sub>k</sub> per signature, from the ATT&CK–D3FEND mapping |
+| **Scoring a defense** | Impact evaluation | Reduced severity RS<sub>k</sub> ∈ [0, 10] from the Reduced_Severity module (CSV table or Gemini 2.5 Flash-Lite), combined into the collaborative fitness F(C) = (IS − RA) / IS |
+| **Search operators** | Selection, crossover, mutation [16] | One collaborator per sub-population: untried-first, exploration (p<sub>e</sub> = 0.25), best credited fitness, mutation (p<sub>m</sub> = 0.20); credit assignment and elitist replacement |
+| **Co-evolution** | Attack and defense populations evolve against each other | Cooperative: each defense pool is a subpopulation, scored together through one combination's fitness [17] |
+| **Output** | Optimal defense strategy | Best combination found, C*, and its fitness F* |
+| **Evaluation** | Not specified | Malware Severity Score before and after; CCEA against a greedy baseline; Shapiro–Wilk and Wilcoxon signed-rank tests (α = 0.05) |
+
+---
+
+## Design Rationale
+
+### Why is there no crossover?
+
+At Phase 1 the panel was told that solutions improve iteratively through selection, crossover and mutation [16]. The Phase 2 search builds each candidate combination one pool at a time, choosing exactly one defense for each observed signature. Recombining two parent combinations is replaced by per-pool exploration (a random alternative with probability p<sub>e</sub>) and mutation (a swap within the same pool with probability p<sub>m</sub>), while untried defenses are always evaluated first. The full procedure is on the [CCEA page](/methodology/ccea/).
+
+### Is it still co-evolutionary?
+
+Phase 2 does not evolve new ransomware: the population of attack plans is fixed to the behaviors that were actually observed. The method is **cooperative** co-evolution in the sense described by Ma et al. [17]. The defense problem is decomposed into one subcomponent per signature, each signature's candidate pool acts as a subpopulation, and every choice is judged by how well the complete combination scores. A defense that does well in combinations with high fitness has a higher average fitness and is reused more often.
+
+### Evolutionary algorithm or evolutionary game theory?
+
+An evolutionary algorithm optimizes the defense strategy. Evolutionary game theory, as in Hu et al. [5], is used only to model attacker–defender interaction; the project does not compute a game equilibrium.
+
+### How is the decision transparent?
+
+Every decision comes from the fitness function. The search proceeds generation by generation and can be traced: the fitness history of each defense shows why it was chosen, and the comparator records when the best combination changed.
+
+### What does "optimal" mean?
+
+The registered problem statement asks for "optimal defense strategies". In Phase 2, the output is the combination with the highest fitness found by the search under its configuration. The search is heuristic, so this is not a proven global optimum.
+
+---
+
+## References
+
+
+<ReferenceItem 
+  number={5} 
+  authors="H. Hu, Y. Liu, C. Chen, H. Zhang, and Y. Liu" 
+  title="Optimal decision making approach for cyber security defense using evolutionary game" 
+  venue="IEEE Transactions on Network and Service Management, vol. 17, no. 3, pp. 1683–1700" 
+  year="2020" 
+  doi="10.1109/TNSM.2020.2995713" 
+/>
+
+<ReferenceItem 
+  number={16} 
+  authors="T. Bartz-Beielstein, J. Branke, J. Mehnen, and O. Mersmann" 
+  title="Evolutionary algorithms" 
+  venue="WIREs Data Mining and Knowledge Discovery, vol. 4, pp. 178–195" 
+  year="2014" 
+/>
+
+<ReferenceItem 
+  number={17} 
+  authors="X. Ma, X. Li, Q. Zhang, K. Tang, Z. Liang, W. Xie, and Z. Zhu" 
+  title="A survey on cooperative co-evolutionary algorithms" 
+  venue="IEEE Transactions on Evolutionary Computation, vol. 23, no. 3, pp. 421–441" 
+  year="2019" 
+  doi="10.1109/TEVC.2018.2868770" 
+/>
