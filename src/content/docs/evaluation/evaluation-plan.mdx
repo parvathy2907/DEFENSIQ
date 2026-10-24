@@ -1,0 +1,124 @@
+---
+title: "Evaluation Methodology"
+description: "Stage IV of the framework: the optimal defense strategy, the Malware Severity Score before and after defenses, comparison with a greedy baseline, statistical validation, and evaluation of the residual-severity estimates."
+---
+
+import PageIntro from '../../../components/PageIntro.astro';
+import DataTable from '../../../components/DataTable.astro';
+
+<PageIntro 
+  subtitle="Stage IV turns the search result into a measurable outcome. For each sample it reports the optimal defense strategy, compares the sample's Malware Severity Score before and after the recommended defenses, compares CCEA with a greedy baseline on the same inputs, and tests the paired differences statistically. The residual-severity estimates are evaluated separately, so that an error in one component is not mistaken for an error in the other."
+/>
+
+## Stage IV Outputs
+
+<DataTable 
+  headers={["Output", "Definition", "Purpose"]}
+  caption="Table 4.1: Outputs of Stage IV for each evaluated sample."
+>
+  <tr>
+    <td><strong>Optimal defense strategy</strong></td>
+    <td>C*, one D3FEND defense per triggered signature, with fitness F*</td>
+    <td>The recommended defense combination for the sample</td>
+  </tr>
+  <tr>
+    <td><strong>MSS<sub>before</sub></strong></td>
+    <td>IS: root mean square of the sample's normalized impact scores</td>
+    <td>The sample's severity with no defenses applied</td>
+  </tr>
+  <tr>
+    <td><strong>MSS<sub>after</sub></strong></td>
+    <td>RA(C*): root mean square of the normalized reduced severities under C*</td>
+    <td>The severity that remains with the recommended defenses</td>
+  </tr>
+  <tr>
+    <td><strong>Fitness F*</strong></td>
+    <td>(IS − RA(C*)) / IS</td>
+    <td>The fraction of the sample's severity removed</td>
+  </tr>
+</DataTable>
+
+The Malware Severity Score (MSS) puts the before and after values on the same normalized 0–1 scale, so the reduction can be read directly for each sample and compared across samples. The definitions of IS, RA and F are on the [CCEA page](/methodology/ccea/).
+
+---
+
+## Comparison with a Greedy Baseline
+
+CCEA is compared with a **greedy baseline** run on exactly the same inputs. Both methods use:
+
+- the same candidate pools P<sub>k</sub> from the candidate dataset D (17 samples, 2,823 rows);
+- the same RS source (the same Reduced_Severity mode and RS table);
+- the same fitness definition.
+
+Because the inputs are identical, any difference in MSS<sub>after</sub> or fitness comes from the search itself. Each sample therefore yields a paired result: one value for CCEA and one for the greedy baseline.
+
+---
+
+## Statistical Validation
+
+The paired per-sample results are tested in two steps:
+
+1. **Shapiro–Wilk test** on the paired differences, to check whether they are normally distributed.
+2. **Wilcoxon signed-rank test** at significance level **α = 0.05**, a non-parametric paired test that does not assume normality. It tests whether CCEA's results differ systematically from the greedy baseline's across the samples.
+
+The same paired test is applied to MSS<sub>before</sub> against MSS<sub>after</sub> to test whether the recommended defenses reduce the Malware Severity Score across samples.
+
+| Test | Question it answers | Decision rule |
+|:---|:---|:---|
+| **Shapiro–Wilk** | Are the paired differences normally distributed? | Normality rejected if p < 0.05 |
+| **Wilcoxon signed-rank** | Do CCEA and greedy (or before and after) differ systematically? | Difference significant if p < 0.05 |
+
+---
+
+## Residual-Severity Evaluation
+
+The RS estimates are evaluated against a reference dataset of attack–defense pairs whose residual severity is labelled independently of the model. Each record keeps the signature, its impact score A<sub>k</sub>, the candidate defense, the input evidence, the reference RS, the predicted RS and the evaluation status.
+
+<DataTable 
+  headers={["Metric", "What it measures", "Why it is used"]}
+  caption="Table 4.2: Metrics for residual-severity estimates."
+>
+  <tr>
+    <td><strong>Quadratic Weighted Kappa (QWK)</strong></td>
+    <td>Agreement between predicted and reference RS on an ordered scale, penalizing larger disagreements more.</td>
+    <td>RS is ordinal; being off by 5 is worse than being off by 1.</td>
+  </tr>
+  <tr>
+    <td><strong>Normalized MAE (MAE / 10)</strong></td>
+    <td>Average absolute error as a fraction of the 0–10 RS scale.</td>
+    <td>Expresses error size in the units the fitness uses.</td>
+  </tr>
+  <tr>
+    <td><strong>Exact-match accuracy</strong></td>
+    <td>Share of predictions equal to the reference RS.</td>
+    <td>The strictest view of agreement.</td>
+  </tr>
+  <tr>
+    <td><strong>Tolerance accuracy (±1)</strong></td>
+    <td>Share of predictions within 1 of the reference RS.</td>
+    <td>Separates near-misses from real errors.</td>
+  </tr>
+  <tr>
+    <td><strong>Macro-averaged F1</strong></td>
+    <td>Classification quality of the FULL / PARTIAL / NONE mitigation labels.</td>
+    <td>Checks the categorical judgment class by class.</td>
+  </tr>
+</DataTable>
+
+Each evaluation run reports the number of eligible cases, skipped records, invalid predictions, failed requests and successful predictions, together with the model version, prompt version and inference settings. Reference labels are assigned independently of the model, and examples used while developing the prompt are kept out of the evaluation set.
+
+---
+
+## Further Analyses
+
+| Analysis | What it shows |
+|:---|:---|
+| **Seed stability** | Whether repeated runs with different random seeds select the same or equally fit combinations. |
+| **Convergence** | How fitness improves over generations and when the coverage-and-patience rule stops the search. |
+| **RS source** | How the recommended combinations change between CSV mode and LLM mode. |
+
+---
+
+## Case Study: BeagleBoyz / APT38 – HOPLIGHT
+
+The case study takes one scenario through the complete pipeline: the observed behaviors of HOPLIGHT, the malware associated with the BeagleBoyz / APT38 threat group, mapped to ATT&CK techniques, mitigations and D3FEND candidate pools, scored for impact and reduced severity, and optimized with CCEA. It shows every intermediate output, from triggered signatures to C* and the Malware Severity Score before and after defenses.
