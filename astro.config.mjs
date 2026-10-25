@@ -9,11 +9,12 @@ export default defineConfig({
       title: 'DEFENSIQ',
       description: 'An Evolutionary Framework for Ransomware Defense Optimization — Team 42, Department of Computer Science and Engineering, Amrita Vishwa Vidyapeetham, Coimbatore.',
       logo: {
-        src: './src/assets/logo.svg',
+        dark: './src/assets/logo-dark.svg',
+        light: './src/assets/logo-light.svg',
         alt: 'DEFENSIQ shield logo',
       },
       head: [
-        { tag: 'meta', attrs: { name: 'theme-color', content: '#141C2F' } },
+        { tag: 'meta', attrs: { name: 'theme-color', content: '#0A0A0A' } },
       ],
       customCss: ['./src/styles/custom.css'],
       components: {

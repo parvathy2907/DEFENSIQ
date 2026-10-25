@@ -1,8 +1,8 @@
 /* =====================================================================
    DEFENSIQ — documentation design system
    Type: Helvetica throughout (Helvetica Neue / Helvetica, Arial fallback).
-   Dark theme (default): deep indigo-slate with teal and violet.
-   Light theme: cool paper with deep teal.
+   Dark theme (default): Swiss poster style, black ground, white type and
+   one red-orange accent. Light theme: cool paper with deep teal.
    Severity colors are reserved for meaning.
    ===================================================================== */
 
@@ -53,61 +53,60 @@
 	--sl-content-width: 50rem;
 }
 
-/* ---------- Dark theme (default): deep indigo-slate with teal and violet ---------- */
+/* ---------- Dark theme (default): black ground, white type, red-orange accent ---------- */
 :root,
 :root[data-theme='dark'] {
 	color-scheme: dark;
-	--dq-ink: #141C2F;          /* page ground */
-	--dq-nav: #18213A;          /* header and sidebar */
-	--dq-panel: #1C2740;        /* raised surface */
-	--dq-panel-2: #253252;      /* table heads, hover */
-	--dq-line: #314067;         /* hairlines */
-	--dq-text: #D9E1EE;
-	--dq-muted: #9DAAC4;
-	--dq-bright: #F5F8FC;
-	--dq-signal: #5FD6D2;       /* primary accent: teal */
-	--dq-signal-dim: rgba(95, 214, 210, 0.14);
-	--dq-violet: #A996F2;       /* secondary accent */
-	--dq-violet-dim: rgba(169, 150, 242, 0.14);
-	--dq-on-signal: #0E1626;
-	--dq-blue: #6AAAE6;
-	--dq-yellow: #E3C65A;
-	--dq-orange: #F0965A;
-	--dq-red: #EE6B61;
-	--dq-green: #66C994;
-	--dq-band-text: #0E1626;
-	--dq-header-bg: rgba(24, 33, 58, 0.9);
-	--dq-glow: radial-gradient(1100px 520px at 12% -8%, rgba(95, 214, 210, 0.13), transparent 60%),
-		radial-gradient(900px 480px at 92% 0%, rgba(169, 150, 242, 0.14), transparent 62%);
-	--dq-figure-bg: #F7F9FC;
-	--dq-sidebar: linear-gradient(180deg, #18213A 0%, #1A2140 55%, #1D1F45 100%);
-	--dq-title-band: linear-gradient(120deg, rgba(95, 214, 210, 0.10), rgba(169, 150, 242, 0.10) 60%, transparent);
-	--dq-thead: #253252;
-	--dq-g-a: #5FD6D2;
-	--dq-g-b: #A996F2;
-	--dq-g-c: #6AAAE6;
-	--dq-g-d: #E3C65A;
-	--dq-g-e: #F08AA8;
-	--dq-diagram-bg: #1C2740;
+	--dq-ink: #0A0A0A;          /* page ground */
+	--dq-nav: #0A0A0A;          /* header and sidebar */
+	--dq-panel: #141414;        /* raised surface */
+	--dq-panel-2: #1D1D1D;      /* table heads, hover */
+	--dq-line: #2A2A2A;         /* hairlines */
+	--dq-text: #D4D4D4;
+	--dq-muted: #8F8F8F;
+	--dq-bright: #FFFFFF;
+	--dq-signal: #FF4D21;       /* primary accent: red-orange */
+	--dq-signal-dim: rgba(255, 77, 33, 0.12);
+	--dq-violet: #E6E6E6;       /* secondary accent: white */
+	--dq-violet-dim: rgba(255, 255, 255, 0.07);
+	--dq-on-signal: #0A0A0A;
+	--dq-blue: #7FB2E8;
+	--dq-yellow: #E8C95C;
+	--dq-orange: #F49A5C;
+	--dq-red: #F0625A;
+	--dq-green: #6CCB97;
+	--dq-band-text: #0A0A0A;
+	--dq-header-bg: rgba(10, 10, 10, 0.94);
+	--dq-glow: none;
+	--dq-figure-bg: #F7F7F7;
+	--dq-sidebar: #0A0A0A;
+	--dq-title-band: none;
+	--dq-thead: #1D1D1D;
+	--dq-g-a: #FF4D21;
+	--dq-g-b: #FF4D21;
+	--dq-g-c: #FF4D21;
+	--dq-g-d: #FF4D21;
+	--dq-g-e: #FF4D21;
+	--dq-diagram-bg: #141414;
 
 	--sl-color-white: var(--dq-bright);
-	--sl-color-gray-1: #E6ECF5;
+	--sl-color-gray-1: #EDEDED;
 	--sl-color-gray-2: var(--dq-text);
-	--sl-color-gray-3: #B3BFD4;
+	--sl-color-gray-3: #ADADAD;
 	--sl-color-gray-4: var(--dq-muted);
 	--sl-color-gray-5: var(--dq-line);
 	--sl-color-gray-6: var(--dq-panel-2);
 	--sl-color-gray-7: var(--dq-panel);
 	--sl-color-black: var(--dq-ink);
-	--sl-color-accent-low: #18394A;
+	--sl-color-accent-low: #3A160C;
 	--sl-color-accent: var(--dq-signal);
-	--sl-color-accent-high: #B4EEEC;
+	--sl-color-accent-high: #FFC2B0;
 	--sl-color-text-accent: var(--dq-signal);
 	--sl-color-text-invert: var(--dq-on-signal);
-	--sl-color-backdrop-overlay: rgba(10, 14, 26, 0.65);
+	--sl-color-backdrop-overlay: rgba(0, 0, 0, 0.7);
 	--sl-color-tech: var(--dq-blue);
-	--sl-color-tech-bg: #1B2C4A;
-	--sl-color-tech-border: #3D5C8C;
+	--sl-color-tech-bg: #141B24;
+	--sl-color-tech-border: #33475E;
 	--sl-color-purple: var(--dq-violet);
 	--sl-color-orange: var(--dq-orange);
 }
@@ -643,7 +642,7 @@ starlight-theme-select label { color: var(--dq-muted); }
 
 /* Diagram images: content unchanged.
    Light theme shows the original drawing. Dark theme shows a recolored copy
-   (dark boxes, light text, teal connectors) generated from the same drawing. */
+   (black boxes, white text, red-orange connectors) generated from the same drawing. */
 .dq-diagram {
 	display: block;
 	margin: 0;
@@ -663,7 +662,7 @@ starlight-theme-select label { color: var(--dq-muted); }
 	filter: invert(1) hue-rotate(180deg) brightness(0.96) contrast(0.95);
 	mix-blend-mode: screen;
 }
-:root[data-theme='dark'] .dq-diagram.invert { background: #1F2B47; isolation: isolate; }
+:root[data-theme='dark'] .dq-diagram.invert { background: var(--dq-diagram-bg); isolation: isolate; }
 
 /* ---------------- Layout accents ---------------- */
 .sidebar-pane { background: var(--dq-sidebar) !important; }
@@ -789,3 +788,16 @@ h1#_top, .dq-title h1 { font-weight: 700; letter-spacing: -0.025em; line-height:
 nav.sidebar .group-label .large,
 .sidebar-content details summary .group-label span,
 .right-sidebar h2 { font-weight: 700; }
+
+/* Dark theme: Swiss poster accents — a red full stop after page titles,
+   a red rule under section headings */
+:root[data-theme='dark'] .dq-title h1::after { content: '.'; color: var(--dq-signal); }
+:root[data-theme='dark'] .sl-markdown-content h2 { border-top-color: var(--dq-line); }
+:root[data-theme='dark'] .sl-markdown-content h2::before { background: var(--dq-signal); }
+
+/* Dark theme: solid accent instead of two-color gradients */
+:root[data-theme='dark'] .pill,
+:root[data-theme='dark'] .hero-card::before,
+:root[data-theme='dark'] .sec-h::after { background: var(--dq-signal); }
+:root[data-theme='dark'] h1 em { background: none; color: var(--dq-signal); }
+:root[data-theme='dark'] .hero-card { box-shadow: none; }
