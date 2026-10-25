@@ -801,3 +801,17 @@ nav.sidebar .group-label .large,
 :root[data-theme='dark'] .sec-h::after { background: var(--dq-signal); }
 :root[data-theme='dark'] h1 em { background: none; color: var(--dq-signal); }
 :root[data-theme='dark'] .hero-card { box-shadow: none; }
+
+/* Dark theme: accent pill and primary button are outlined, not filled */
+:root[data-theme='dark'] .pill {
+	background: transparent;
+	color: var(--dq-signal);
+	box-shadow: inset 0 0 0 1.5px var(--dq-signal);
+}
+:root[data-theme='dark'] .btn.primary {
+	background: transparent;
+	color: var(--dq-signal);
+	border: 1.5px solid var(--dq-signal);
+	box-shadow: none;
+}
+:root[data-theme='dark'] .btn.primary:hover { background: var(--dq-signal-dim); filter: none; }
