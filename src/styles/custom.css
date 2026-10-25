@@ -320,7 +320,9 @@ h1#_top {
 	border-bottom: 1px solid var(--dq-line);
 }
 .sl-markdown-content table :is(th, td) { padding: 0.6rem 0.8rem; border-color: var(--dq-line); vertical-align: top; }
-.sl-markdown-content table tr:nth-child(even) td { background: rgba(16, 26, 42, 0.5); }
+.sl-markdown-content table tr,
+.sl-markdown-content table tr:nth-child(2n),
+.sl-markdown-content table td { background: transparent; }
 
 /* Asides (note / tip / caution) */
 .starlight-aside {
