@@ -1,0 +1,220 @@
+---
+title: "Limitations and Future Work"
+description: "Critical analysis of methodological constraints, environmental boundaries, and strategic future research trajectories."
+---
+
+import PageIntro from '../../../components/PageIntro.astro';
+
+<PageIntro 
+  subtitle="Critical examination of methodological boundaries, environmental constraints, and strategic future research directions." 
+  note="A transparent assessment of dataset coverage, sandbox observability, ontological mapping, LLM reasoning, and evolutionary optimization boundaries."
+/>
+
+## Overview
+
+The proposed framework integrates malware behavior analysis, MITRE ATT&CK technique mapping, ATT&CK–D3FEND defense mapping, signature impact quantification, Large Language Model (LLM)-based Residual Severity (RS) estimation, and Cooperative Co-Evolutionary Algorithm (CCEA)-based defense optimization. Although this design provides a structured approach to evaluating and selecting candidate defenses, its results are subject to limitations in dataset coverage, sandbox observability, behavior-to-defense mapping, LLM reliability, and optimization search.
+
+These limitations affect how broadly the results can be generalized and how confidently the recommended defense combinations can be interpreted. The framework should therefore be treated as a research and decision-support system. A recommended combination is not, by itself, proof that the defenses will prevent an attack in a live production environment.
+
+---
+
+## Dataset Limitations
+
+### Sample Size and Representativeness
+
+The dataset contains approximately 3,000 malware samples collected from VirusTotal, VirusShare, and samples provided by the project guide. Samples were validated using available VirusTotal information, and SHA-256 hashing was used to identify and remove duplicate files.
+
+Although this dataset provides a foundation for dynamic analysis, its size and sources do not guarantee comprehensive coverage of ransomware behavior. The dataset may not represent the full diversity of ransomware families, variants, delivery mechanisms, operating environments, and attack objectives. Samples available through online repositories may also differ from malware encountered in real-world incidents.
+
+Consequently, findings derived from the dataset should not automatically be generalized to all ransomware campaigns or environments.
+
+### Class Imbalance and Family Coverage
+
+The distribution of samples across ransomware families, malware classes, and behavioral categories can influence the analysis. If certain families or behavioral patterns are represented more frequently than others, the framework may produce results that are more reflective of those frequently observed behaviors.
+
+A complete evaluation should report the number of samples per family or class, the distribution of key behavioral signatures, and the extent to which samples share related characteristics. Family-level distributions and imbalance should be measured from the actual dataset rather than assumed.
+
+### Temporal Drift and Evolving Malware
+
+Ransomware behavior evolves over time as threat actors introduce new variants, modify execution sequences, and adopt different evasion or impact techniques. A dataset collected at one point in time may not adequately represent later attack behaviors.
+
+Changes in malware tooling, packing techniques, and execution strategies may also affect the signatures observed during sandbox analysis. The current results should therefore be interpreted in the context of the samples analyzed. Evaluation on subsequently collected samples would help determine whether the framework generalizes to emerging ransomware behavior.
+
+### Source and Acquisition Bias
+
+The use of samples from online malware repositories and guide-provided collections introduces potential acquisition bias. The available samples may reflect repository availability, submission practices, collection periods, or other selection effects. Geographic and campaign-level representativeness cannot be established without appropriate metadata.
+
+Future dataset releases should document collection dates, available source metadata, family labels, class distributions, and inclusion or exclusion criteria wherever possible.
+
+---
+
+## Sandbox Limitations
+
+### Execution Coverage and Observability
+
+Dynamic analysis relies on the behavior a sample exhibits during its execution in the configured virtual environment. Cuckoo Sandbox and VirtualBox provide a controlled environment for observing execution activity and producing structured reports. However, a report captures only the behavior observed under the conditions of that analysis run.
+
+A sample may require specific user interactions, system configurations, network conditions, privileges, or execution timing before exhibiting its full behavior. If these conditions are absent, some malicious activities may not appear in the report. As a result, the extracted signatures and mapped attack techniques may represent only part of the sample's potential behavior.
+
+### Anti-Analysis and Evasion
+
+Some malware may detect virtualization, monitoring tools, or other analysis artifacts and alter its execution. It may also delay malicious actions, require external communication, or terminate before reaching its intended behavior.
+
+The extent to which such techniques affect this project must be established through observed evidence. The framework should not be assumed to bypass anti-analysis mechanisms unless dedicated tests demonstrate that capability. Future experiments could compare sandbox observations with controlled execution scenarios designed to identify missed behavior.
+
+### Execution Duration and Environmental Constraints
+
+The behaviors recorded during an analysis run depend on the sandbox configuration, including the available execution time and virtual-machine environment. A run that ends before a delayed action occurs may produce an incomplete behavioral record. Similarly, host operating-system configuration, guest image state, and available services may affect the behavior observed.
+
+The current documentation should specify the actual guest operating system, execution timeout, relevant sandbox settings, and analysis prerequisites used in the experiments. These details are necessary for reproducibility and for determining which conclusions are specific to the tested environment.
+
+### Platform Boundaries
+
+The framework's findings are limited to the platforms and configurations represented in the dataset and sandbox experiments. Support for additional operating systems or kernel-level telemetry should not be assumed unless it has been implemented and evaluated.
+
+Extending the framework to Linux or macOS would require appropriate telemetry collection, analysis integration, and validation of the resulting behavior mappings.
+
+---
+
+## Mapping Limitations
+
+### ATT&CK Technique Inference
+
+The mapping stage associates observed signatures, API information, and behavioral indicators with relevant MITRE ATT&CK tactics and techniques. However, a behavioral indicator does not always uniquely identify an attack technique. The same API or system action may have legitimate uses or appear in different malicious contexts.
+
+Mappings should therefore be interpreted as evidence-based technique associations rather than definitive proof of every inferred action. Where multiple techniques are plausible, the available behavioral evidence and the basis for the selected mapping should be documented.
+
+### ATT&CK–D3FEND Relationship Coverage
+
+The defense mapping stage uses relationships between ATT&CK techniques and defensive concepts represented by MITRE D3FEND. The mapped defense options help identify mechanisms relevant to observed attack behavior, but a documented relationship does not guarantee that a defense will stop a specific malware sample in practice.
+
+The available mappings may not cover every possible technique-defense interaction, implementation detail, or environmental dependency. Results may also change as the underlying knowledge bases evolve. The version or retrieval date of the knowledge sources should therefore be recorded for reproducibility.
+
+### Granularity and Context Mismatch
+
+ATT&CK describes adversary behavior at a conceptual level, while defensive mechanisms often operate on specific system events, artifacts, processes, or configurations. A high-level attack technique may consequently map to multiple defensive options, each addressing a different aspect of the behavior.
+
+A mapped defense may require particular privileges, operating-system capabilities, configuration settings, or supporting controls. The current mapping process should not be interpreted as resolving all these implementation constraints automatically.
+
+### Future Mapping Validation
+
+Future work should assess mapping quality using expert review, documented mapping criteria, and representative test cases. Ambiguous mappings could be recorded explicitly, and the evidence supporting each mapping could be retained alongside the selected candidate defenses. This would make it easier to distinguish well-supported associations from mappings that require further investigation.
+
+---
+
+## LLM-Based Residual Severity Limitations
+
+### Dependence on Input Evidence
+
+The LLM estimates Residual Severity from the structured attack and defense evidence supplied to it. The quality of this estimate therefore depends on the completeness and accuracy of the input information, including the observed behavior, mapped defenses, and available evidence of blocked or surviving attack actions.
+
+If sandbox analysis fails to observe an important action, the model may not have enough evidence to account for it. Similarly, an inaccurate technique mapping or an incomplete description of a defense can affect the resulting estimate.
+
+The RS value should therefore be interpreted as a model-generated estimate under the supplied evidence, not as ground-truth measurement of the damage that would occur in a production environment.
+
+### Model Variability and Prompt Sensitivity
+
+LLM outputs can be affected by model versions, inference settings, prompt wording, input ordering, and the structure of the supplied evidence. Even when a structured output format is used, compliance with the format does not by itself guarantee that the severity assessment is correct.
+
+The project should evaluate whether repeated runs and reasonable prompt variations produce materially different RS estimates. The model identifier, prompt version, relevant inference settings, and output validation procedure should be recorded for reproducibility.
+
+### Bounded Output and Scale Alignment
+
+The RS output is an integer on a 0–10 scale, with 0 meaning that no severity remains. Responses outside this range are logged and excluded rather than silently corrected (see [Reduced Severity Estimation](/methodology/residual-severity/)). In CSV mode, RS values come from a pre-computed table, so the same limits apply to how that table was produced.
+
+CCEA normalizes RS by RS<sub>max</sub> = 10 and the impact score by its own 1–35 range, so both enter the fitness on a 0–1 scale. The relative weight of impact and residual severity in the fitness therefore depends on these two normalizations.
+
+### Evaluation and Ground-Truth Limitations
+
+The framework uses metrics such as Quadratic Weighted Kappa (QWK), normalized Mean Absolute Error (MAE), macro-averaged F1 for categorical mitigation labels, exact-match accuracy, and tolerance accuracy. These metrics provide complementary views of agreement and prediction quality, but their interpretation depends on the quality and independence of the reference labels.
+
+Human-reviewed or otherwise independently established reference assessments should be used wherever possible. The evaluation should also document the number and composition of test cases, the procedure used to establish reference labels, and whether the test set is separated from examples used during prompt development or tuning.
+
+The project uses Gemini 2.5 Flash-Lite. Results will be reported together with the exact model version and configuration used in each experiment.
+
+---
+
+## Optimization Limitations
+
+### Search-Space Growth
+
+The CCEA component selects a candidate defense for each signature-associated defense pool and evaluates the resulting combination using the configured fitness function. As the number of signatures and the number of candidates available within each pool increase, the total number of possible combinations can grow rapidly.
+
+The documented workflow uses exploration, mutation, best-so-far choices, and stopping criteria to guide the search without exhaustively evaluating every possible combination. These mechanisms can reduce the practical search burden, but they do not guarantee that the globally best combination will be found.
+
+Actual search complexity depends on the number of pools, candidate defenses, generations, evaluation costs, and implementation details. A simplified complexity expression should only be reported if it matches the implemented algorithm and clearly defines its variables.
+
+### Search Dependence and Convergence
+
+The resulting defense combination can depend on the initial random seed, exploration probability, mutation probability, candidate-pool contents, and stopping conditions. A single run may not fully reveal how stable the outcome is under alternative search settings.
+
+Repeated runs with different seeds and comparisons with appropriate baseline strategies would help establish whether the selected combinations are reproducible and whether the search consistently improves on simpler alternatives.
+
+### Fitness-Function Assumptions
+
+The CCEA fitness function combines normalized impact and residual-severity information. This provides a practical scalar objective for comparing candidate combinations, but the result depends on the chosen normalization, parameters, and assumptions about how the component scores should be aggregated.
+
+The fitness value is a model-based ranking criterion, not a direct guarantee of operational security. It also does not independently capture every deployment consideration, such as implementation cost, compatibility, system overhead, maintainability, or false-positive impact, unless these factors are explicitly incorporated into the evaluation.
+
+The current approach is single-objective; it is not a Pareto multi-objective optimization. It is cooperative co-evolution over the defense side only: the population of attack plans is fixed to the observed signatures and is not co-evolved with the defense search (see [Phase 1 → Phase 2](/methodology/evolution/)).
+
+### Recommendation Versus Deployment
+
+The output of the optimization stage is a recommended defense combination based on the available candidate defenses and the configured fitness function. Practical effectiveness still depends on whether the selected defenses can be correctly configured, deployed, and maintained in the target environment.
+
+Before operational use, candidate combinations require validation under representative workloads and attack scenarios. The current optimization output should not be presented as proof of successful real-time mitigation or as an automatically deployed security policy.
+
+---
+
+## Future Research Directions
+
+<div class="academic-feature-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin: 1.5rem 0;">
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-accent);">📊</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Broader Datasets</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Expand coverage across ransomware families, collection eras, and execution platforms, evaluating temporal stability against newly emerging strains.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-tech);">🔬</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Improved Sandbox Coverage</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Investigate how environmental variables, execution timeouts, and anti-evasion measures influence dynamic behavioral signature extraction.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-purple);">🎯</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Stronger Mapping Validation</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Establish expert-reviewed benchmark cases, explicit evidence logging, and version-pinned ontology tracking for ATT&amp;CK and D3FEND mappings.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-orange);">🧠</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Reliable RS Estimation</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Perform systematic prompt sensitivity studies, repeated-run stability checks, cross-model benchmarks, and explanation consistency validations.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: #06b6d4;">⚖️</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Robustness &amp; CCEA Baselines</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Benchmark CCEA over multiple random seeds against random selection, greedy choice, and exhaustive search on tractable sub-instances.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: #ec4899;">🐧</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Cross-Platform Kernel Probes</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Extend runtime telemetry collection to Linux eBPF probes and macOS Endpoint Security Framework interfaces as dedicated research objectives.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: #10b981;">🤖</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Reinforcement Learning</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Explore deep multi-agent reinforcement learning (MARL) as an alternative optimization paradigm evaluated against established CCEA baselines.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: #ef4444;">🛡️</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Active Defense Orchestration</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Connect recommended defense combinations to endpoint security policy orchestrators and SDN firewalls with human-in-the-loop safeguards.</p>
+  </div>
+</div>
+
+---
+
+## Conclusion
+
+The framework provides a structured pipeline for translating observed malware behavior into mapped defensive options, estimating residual severity, and searching for a suitable defense combination. Its conclusions remain bounded by the coverage of the malware dataset, the completeness of sandbox observations, the quality of attack-defense mappings, the reliability of LLM estimates, and the assumptions of the optimization objective.
+
+Future work should prioritize reproducible evaluation, dataset and mapping validation, robust RS estimation, and comparison of optimization results with appropriate baselines. Broader platform support, reinforcement learning, and active defense integration represent longer-term opportunities that require independent implementation and empirical validation.
