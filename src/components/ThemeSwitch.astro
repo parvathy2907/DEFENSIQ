@@ -1,7 +1,7 @@
 ---
 // Segmented Light / Dark / Auto theme control. Replaces Starlight's theme <select>.
-// Uses the same localStorage key ('starlight-theme') as Starlight's ThemeProvider,
-// so the theme is applied before first paint on every page.
+// Uses the same localStorage key ('starlight-theme') as ThemeProvider, so the theme
+// is applied before first paint on every page. No saved value means light.
 ---
 
 <dq-theme-switch class="dq-theme-switch">
@@ -25,7 +25,7 @@
   (() => {
     let v = '';
     try { v = localStorage.getItem('starlight-theme') || ''; } catch (e) {}
-    const cur = v === 'light' || v === 'dark' ? v : 'auto';
+    const cur = v === 'dark' || v === 'auto' ? v : 'light';
     document.querySelectorAll('dq-theme-switch button').forEach((b) => {
       b.setAttribute('aria-checked', b.dataset.v === cur ? 'true' : 'false');
     });
@@ -35,15 +35,15 @@
 <script>
   type Theme = 'auto' | 'dark' | 'light';
   const KEY = 'starlight-theme';
-  const parse = (t: unknown): Theme => (t === 'light' || t === 'dark' ? t : 'auto');
+  const parse = (t: unknown): Theme => (t === 'dark' || t === 'auto' ? t : 'light');
   const load = (): Theme => {
-    try { return parse(localStorage.getItem(KEY)); } catch { return 'auto'; }
+    try { return parse(localStorage.getItem(KEY)); } catch { return 'light'; }
   };
   const system = () => (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
 
   function apply(theme: Theme) {
     document.documentElement.dataset.theme = theme === 'auto' ? system() : theme;
-    try { localStorage.setItem(KEY, theme === 'auto' ? '' : theme); } catch {}
+    try { localStorage.setItem(KEY, theme); } catch {}
     document.querySelectorAll<HTMLButtonElement>('dq-theme-switch button').forEach((b) => {
       b.setAttribute('aria-checked', b.dataset.v === theme ? 'true' : 'false');
     });

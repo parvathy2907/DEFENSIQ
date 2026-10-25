@@ -14,13 +14,14 @@ export default defineConfig({
         alt: 'DEFENSIQ shield logo',
       },
       head: [
-        { tag: 'meta', attrs: { name: 'theme-color', content: '#0A0A0A' } },
+        { tag: 'meta', attrs: { name: 'theme-color', content: '#EEF3F8' } },
       ],
       customCss: ['./src/styles/custom.css'],
       components: {
         Footer: './src/components/CustomFooter.astro',
         Search: './src/components/Search.astro',
         ThemeSelect: './src/components/ThemeSwitch.astro',
+        ThemeProvider: './src/components/ThemeProvider.astro',
         PageTitle: './src/components/PageTitle.astro',
       },
       tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 3 },
