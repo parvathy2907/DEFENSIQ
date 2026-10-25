@@ -51,6 +51,8 @@
 	--sl-text-h4: 1.08rem;
 	--sl-line-height: 1.7;
 	--sl-content-width: 50rem;
+	--sl-nav-height: 4rem;
+	--sl-nav-pad-y: 0.8rem;
 }
 
 /* ---------- Dark theme (default): black ground, white type, red-orange accent ---------- */
@@ -198,7 +200,7 @@ body {
 }
 
 /* ---------------- Header & sidebar ---------------- */
-.header {
+header.header {
 	border-bottom: 1px solid var(--dq-line);
 	background: var(--dq-header-bg);
 	backdrop-filter: blur(8px);
@@ -666,7 +668,7 @@ starlight-theme-select label { color: var(--dq-muted); }
 
 /* ---------------- Layout accents ---------------- */
 .sidebar-pane { background: var(--dq-sidebar) !important; }
-.header { background: var(--dq-header-bg); }
+header.header { background: var(--dq-header-bg); }
 
 /* Page title band */
 .content-panel:first-of-type .dq-title,
