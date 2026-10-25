@@ -13,6 +13,9 @@ export default defineConfig({
         light: './src/assets/logo-light.svg',
         alt: 'DEFENSIQ shield logo',
       },
+      social: [
+        { icon: 'github', label: 'Source code on GitHub', href: 'https://github.com/parvathy2907/DEFENSIQ' },
+      ],
       head: [
         { tag: 'meta', attrs: { name: 'theme-color', content: '#EEF3F8' } },
       ],

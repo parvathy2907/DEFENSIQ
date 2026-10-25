@@ -815,3 +815,4 @@ nav.sidebar .group-label .large,
 	box-shadow: none;
 }
 :root[data-theme='dark'] .btn.primary:hover { background: var(--dq-signal-dim); filter: none; }
+.footer-section-content a { color: var(--dq-signal); text-underline-offset: 3px; }
