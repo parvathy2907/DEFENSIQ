@@ -13,15 +13,6 @@ export default defineConfig({
         alt: 'DEFENSIQ shield logo',
       },
       head: [
-        { tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.googleapis.com' } },
-        { tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' } },
-        {
-          tag: 'link',
-          attrs: {
-            rel: 'stylesheet',
-            href: 'https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap',
-          },
-        },
         { tag: 'meta', attrs: { name: 'theme-color', content: '#141C2F' } },
       ],
       customCss: ['./src/styles/custom.css'],

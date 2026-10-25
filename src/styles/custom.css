@@ -1,16 +1,50 @@
 /* =====================================================================
    DEFENSIQ — documentation design system
-   Direction: security-operations console. Two themes: a deep
-   indigo-slate dark theme (default) and a cool paper light theme.
-   Teal is the primary accent, violet the secondary; severity colors
-   are reserved for meaning.
+   Type: Helvetica throughout (Helvetica Neue / Helvetica, Arial fallback).
+   Dark theme (default): deep indigo-slate with teal and violet.
+   Light theme: cool paper with deep teal.
+   Severity colors are reserved for meaning.
    ===================================================================== */
+
+/* ---------- Typeface ----------
+   'DQ Helvetica' uses the reader's installed Helvetica Neue / Helvetica when present,
+   otherwise TeX Gyre Heros (a Helvetica-metric typeface, GUST Font License). */
+@font-face {
+	font-family: 'DQ Helvetica';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: local('Helvetica Neue'), local('HelveticaNeue'), local('Helvetica'), url('/fonts/heros-regular.woff2') format('woff2');
+}
+@font-face {
+	font-family: 'DQ Helvetica';
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: local('Helvetica Neue Bold'), local('HelveticaNeue-Bold'), local('Helvetica Bold'), local('Helvetica-Bold'), url('/fonts/heros-bold.woff2') format('woff2');
+}
+@font-face {
+	font-family: 'DQ Helvetica';
+	font-style: italic;
+	font-weight: 400;
+	font-display: swap;
+	src: local('Helvetica Neue Italic'), local('HelveticaNeue-Italic'), local('Helvetica Oblique'), local('Helvetica-Oblique'), url('/fonts/heros-italic.woff2') format('woff2');
+}
+@font-face {
+	font-family: 'DQ Helvetica';
+	font-style: italic;
+	font-weight: 700;
+	font-display: swap;
+	src: local('Helvetica Neue Bold Italic'), local('HelveticaNeue-BoldItalic'), local('Helvetica Bold Oblique'), local('Helvetica-BoldOblique'), url('/fonts/heros-bolditalic.woff2') format('woff2');
+}
 
 /* ---------- Shared tokens ---------- */
 :root {
-	--dq-display: 'Chakra Petch', 'Segoe UI', system-ui, sans-serif;
-	--sl-font: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
-	--sl-font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	--dq-helvetica: 'DQ Helvetica', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+	--dq-display: var(--dq-helvetica);
+	--dq-label: var(--dq-helvetica);
+	--sl-font: var(--dq-helvetica);
+	--sl-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 	--sl-text-h1: clamp(2rem, 4.4vw, 2.75rem);
 	--sl-text-h2: 1.75rem;
 	--sl-text-h3: 1.3rem;
@@ -180,10 +214,10 @@ body {
 
 nav.sidebar .group-label .large,
 .sidebar-content details summary .group-label span {
-	font-family: var(--sl-font-mono);
+	font-family: var(--dq-label);
 	font-size: 0.72rem;
 	font-weight: 500;
-	letter-spacing: 0.12em;
+	letter-spacing: 0.06em;
 	text-transform: uppercase;
 	color: var(--dq-muted);
 }
@@ -205,7 +239,7 @@ nav.sidebar .group-label .large,
 starlight-toc a { color: var(--dq-muted); }
 starlight-toc a[aria-current='true'] { color: var(--dq-signal); }
 .right-sidebar h2 {
-	font-family: var(--sl-font-mono);
+	font-family: var(--dq-label);
 	font-size: 0.72rem;
 	letter-spacing: 0.12em;
 	text-transform: uppercase;
@@ -256,7 +290,7 @@ h1#_top {
 	font-size: 0.86em;
 }
 .sl-markdown-content ul li::marker { color: var(--dq-signal); }
-.sl-markdown-content ol li::marker { color: var(--dq-signal); font-family: var(--sl-font-mono); font-size: 0.85em; }
+.sl-markdown-content ol li::marker { color: var(--dq-signal); font-family: var(--dq-label); font-size: 0.85em; }
 .sl-markdown-content sub { font-size: 0.72em; }
 
 /* Code blocks (Expressive Code) */
@@ -277,7 +311,7 @@ h1#_top {
 .sl-markdown-content table th {
 	background: var(--dq-thead);
 	color: var(--dq-bright);
-	font-family: var(--sl-font-mono);
+	font-family: var(--dq-label);
 	font-size: 0.74rem;
 	font-weight: 500;
 	letter-spacing: 0.06em;
@@ -299,7 +333,7 @@ h1#_top {
 .starlight-aside--caution { border-inline-start-color: var(--dq-yellow); --sl-color-asides-text-accent: var(--dq-yellow); }
 .starlight-aside--danger { border-inline-start-color: var(--dq-red); --sl-color-asides-text-accent: var(--dq-red); }
 .starlight-aside__title {
-	font-family: var(--sl-font-mono);
+	font-family: var(--dq-label);
 	font-size: 0.78rem;
 	letter-spacing: 0.1em;
 	text-transform: uppercase;
@@ -366,7 +400,7 @@ h1#_top {
 }
 .academic-feature-card h4 { margin-top: 0.25rem !important; font-family: var(--dq-display); }
 .feature-icon {
-	font-family: var(--sl-font-mono);
+	font-family: var(--dq-label);
 	font-size: 0.72rem;
 	letter-spacing: 0.1em;
 	text-transform: uppercase;
@@ -379,7 +413,7 @@ h1#_top {
 .academic-table th {
 	background: var(--dq-thead);
 	color: var(--dq-bright);
-	font-family: var(--sl-font-mono);
+	font-family: var(--dq-label);
 	font-size: 0.74rem;
 	font-weight: 500;
 	letter-spacing: 0.06em;
@@ -392,7 +426,7 @@ h1#_top {
 .academic-table td { padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--dq-line); vertical-align: top; color: var(--dq-text); }
 .academic-table tr:last-child td { border-bottom: none; }
 .academic-table caption {
-	font-family: var(--sl-font-mono);
+	font-family: var(--dq-label);
 	font-size: 0.76rem !important;
 	color: var(--dq-muted) !important;
 	border-top: 1px solid var(--dq-line);
@@ -421,7 +455,7 @@ h1#_top {
 	display: flex;
 	gap: 0.5rem;
 	align-items: center;
-	font-family: var(--sl-font-mono) !important;
+	font-family: var(--dq-label) !important;
 	font-size: 0.78rem !important;
 	font-weight: 500 !important;
 	letter-spacing: 0.06em;
@@ -430,7 +464,7 @@ h1#_top {
 }
 .workflow-title svg { color: var(--dq-signal); flex: none; }
 .workflow-status {
-	font-family: var(--sl-font-mono);
+	font-family: var(--dq-label);
 	font-size: 0.7rem;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
@@ -449,7 +483,7 @@ h1#_top {
 	font-size: 0.85rem;
 	color: var(--dq-muted);
 }
-.workflow-caption strong { font-family: var(--sl-font-mono); font-weight: 500; color: var(--dq-text); }
+.workflow-caption strong { font-family: var(--dq-label); font-weight: 500; color: var(--dq-text); }
 
 /* Lifecycle diagram (Introduction) */
 .lifecycle-flow-wrapper { display: flex; flex-direction: column; gap: 0.5rem; }
@@ -478,7 +512,7 @@ h1#_top {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.35rem;
-	font-family: var(--sl-font-mono);
+	font-family: var(--dq-label);
 	font-size: 0.7rem;
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
@@ -493,7 +527,7 @@ h1#_top {
 .status-badge.planned { color: var(--dq-muted); }
 
 /* Severity bands */
-.band { display: inline-block; font-family: var(--sl-font-mono); font-weight: 600; font-size: 0.78rem; padding: 0.15rem 0.45rem; border-radius: 3px; color: var(--dq-band-text); }
+.band { display: inline-block; font-family: var(--dq-label); font-weight: 600; font-size: 0.78rem; padding: 0.15rem 0.45rem; border-radius: 3px; color: var(--dq-band-text); }
 .band.b1 { background: var(--dq-blue); }
 .band.b2 { background: var(--dq-yellow); }
 .band.b3 { background: var(--dq-orange); }
@@ -501,7 +535,7 @@ h1#_top {
 
 /* Formula block */
 .dq-formula {
-	font-family: var(--sl-font-mono);
+	font-family: var(--dq-label);
 	font-size: 0.92rem;
 	line-height: 1.9;
 	color: var(--dq-bright);
@@ -525,8 +559,8 @@ h1#_top {
 .dq-node.llm { border-style: dashed; border-color: var(--dq-signal); }
 .dq-node.out { background: var(--dq-signal-dim); border-color: rgba(92, 200, 201, 0.5); }
 .dq-box { border: 1px dashed var(--dq-line); border-radius: 6px; padding: 0.6rem; display: flex; flex-direction: column; gap: 0.55rem; }
-.dq-box .lbl { font-family: var(--sl-font-mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dq-muted); }
-.dq-arrow { font-family: var(--sl-font-mono); font-size: 0.72rem; color: var(--dq-signal); text-align: center; }
+.dq-box .lbl { font-family: var(--dq-label); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dq-muted); }
+.dq-arrow { font-family: var(--dq-label); font-size: 0.72rem; color: var(--dq-signal); text-align: center; }
 
 /* References */
 .reference-item-entry {
@@ -538,9 +572,9 @@ h1#_top {
 	font-size: 0.93rem;
 	line-height: 1.55;
 }
-.reference-num { font-family: var(--sl-font-mono); color: var(--dq-signal); font-size: 0.85rem; }
+.reference-num { font-family: var(--dq-label); color: var(--dq-signal); font-size: 0.85rem; }
 .reference-text { color: var(--dq-text); }
-.reference-links { grid-column: 2; display: flex; gap: 1rem; flex-wrap: wrap; font-family: var(--sl-font-mono); font-size: 0.78rem; }
+.reference-links { grid-column: 2; display: flex; gap: 1rem; flex-wrap: wrap; font-family: var(--dq-label); font-size: 0.78rem; }
 .reference-links a { color: var(--dq-signal); }
 .reference-item-entry:target { background: var(--dq-signal-dim); }
 
@@ -551,7 +585,7 @@ h1#_top {
 	background: var(--dq-panel);
 	padding: 1rem;
 }
-.metric-label, .figure-note { font-family: var(--sl-font-mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dq-muted); }
+.metric-label, .figure-note { font-family: var(--dq-label); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dq-muted); }
 .metric-value-placeholder { font-family: var(--dq-display); font-size: 1.6rem; color: var(--dq-bright); }
 .metric-desc, .figure-caption-text { font-size: 0.85rem; color: var(--dq-muted); }
 
@@ -565,7 +599,7 @@ h1#_top {
 }
 .academic-portal-footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; }
 .footer-section-title {
-	font-family: var(--sl-font-mono);
+	font-family: var(--dq-label);
 	font-size: 0.7rem;
 	letter-spacing: 0.12em;
 	text-transform: uppercase;
@@ -584,7 +618,7 @@ h1#_top {
 	margin-top: 1.5rem;
 	padding: 1rem 0 0.5rem;
 	border-top: 1px solid var(--dq-line);
-	font-family: var(--sl-font-mono);
+	font-family: var(--dq-label);
 	font-size: 0.74rem;
 }
 
@@ -720,7 +754,7 @@ main > .content-panel:first-child {
 	font-weight: 600;
 }
 .lc-stage:nth-child(4)::after { content: '↓'; right: 50%; top: auto; bottom: -1.3rem; transform: translateX(50%); }
-.lc-n { font-family: var(--sl-font-mono); font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dq-signal); }
+.lc-n { font-family: var(--dq-label); font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dq-signal); }
 .lc-name { font-family: var(--dq-display); font-weight: 600; font-size: 0.98rem; color: var(--dq-bright); line-height: 1.25; }
 .lc-tactics { list-style: none; margin: 0.15rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
 .lc-tactics li { margin: 0; font-size: 0.8rem; line-height: 1.3; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0 0.5rem; padding: 0.25rem 0.45rem; border-radius: 4px; background: var(--dq-signal-dim); }
@@ -728,7 +762,7 @@ main > .content-panel:first-child {
 .lc-tactics li::marker { content: none; }
 .lc-tactics a { color: var(--dq-text); text-decoration: none; }
 .lc-tactics a:hover { color: var(--dq-signal); text-decoration: underline; }
-.lc-tactics span { font-family: var(--sl-font-mono); font-size: 0.7rem; color: var(--dq-muted); white-space: nowrap; }
+.lc-tactics span { font-family: var(--dq-label); font-size: 0.7rem; color: var(--dq-muted); white-space: nowrap; }
 .lc-stage.lc-impact { border-color: var(--dq-red); background: color-mix(in srgb, var(--dq-red) 9%, var(--dq-ink)); }
 .lc-stage.lc-impact .lc-n { color: var(--dq-red); }
 .lc-stage.lc-impact .lc-tactics li { background: color-mix(in srgb, var(--dq-red) 12%, transparent); }
@@ -744,3 +778,14 @@ main > .content-panel:first-child {
 	.lc-stage:nth-child(5)::after,
 	.lc-stage:nth-child(6)::after { content: '←'; right: auto; left: -1.25rem; }
 }
+
+/* ---------------- Helvetica typography ---------------- */
+body { font-feature-settings: 'kern' 1, 'liga' 1; text-rendering: optimizeLegibility; }
+.site-title { font-weight: 700; letter-spacing: -0.01em; }
+h1#_top, .dq-title h1 { font-weight: 700; letter-spacing: -0.025em; line-height: 1.05; }
+.sl-markdown-content h2 { letter-spacing: -0.018em; }
+.sl-markdown-content :is(h3, h4) { font-weight: 700; letter-spacing: -0.01em; }
+.sl-markdown-content strong { font-weight: 700; }
+nav.sidebar .group-label .large,
+.sidebar-content details summary .group-label span,
+.right-sidebar h2 { font-weight: 700; }
