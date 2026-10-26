@@ -4,10 +4,10 @@
 
 ### An Evolutionary Framework for Ransomware Defense Optimization
 
-Final-year project · **Team 42** · Department of Computer Science and Engineering
+Final-year project · **Team 42** · Department of Computer Science and Engineering<br>
 Amrita Vishwa Vidyapeetham, Coimbatore
 
-**[Live documentation](https://final-year-project-documentation-po.vercel.app)** · **[Source code](https://github.com/parvathy2907/DEFENSIQ)**
+**[Live documentation](https://defensiq.vercel.app)** · **[Source code](https://github.com/parvathy2907/DEFENSIQ)**
 
 </div>
 
@@ -149,7 +149,7 @@ These gaps describe the specific integration this project addresses. Earlier wor
 
 ## 7. System architecture
 
-The framework has four stages. The full diagram is on the [System Architecture](https://final-year-project-documentation-po.vercel.app/methodology/architecture/) page (`public/images/architecture.png`).
+The framework has four stages. The full diagram is on the [System Architecture](https://defensiq.vercel.app/methodology/architecture/) page (`public/images/architecture.png`).
 
 ```
  I. Behavioural Data        II. Impact Quantification     III. Cooperative Co-Evolutionary      IV. Output and
@@ -416,7 +416,7 @@ All results are limited to the evaluated samples, environment and configuration.
 18. N. O. Jaffal, M. Alkhanafseh and D. Mohaisen, "Large language models in cybersecurity: A survey of applications, vulnerabilities, and defense techniques," *AI*, 6(9), 2025.
 19. A. Walker, M. F. Amjad and S. Sengupta, "Cuckoo's malware threat scoring and classification: Friend or foe?," *IEEE CCWC*, 2019.
 
-The full list, including technical resources TR-1 to TR-5, is on the [References](https://final-year-project-documentation-po.vercel.app/resources/references/) page.
+The full list, including technical resources TR-1 to TR-5, is on the [References](https://defensiq.vercel.app/resources/references/) page.
 
 ---
 

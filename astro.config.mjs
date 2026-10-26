@@ -3,7 +3,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
 export default defineConfig({
-  site: 'https://final-year-project-documentation-po.vercel.app',
+  site: 'https://defensiq.vercel.app',
   integrations: [
     starlight({
       title: 'DEFENSIQ',
