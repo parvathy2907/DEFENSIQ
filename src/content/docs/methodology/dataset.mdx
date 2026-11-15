@@ -5,6 +5,7 @@ description: "Empirical malware dataset curation, sample validation, SHA-256 ded
 
 import PageIntro from '../../../components/PageIntro.astro';
 import DataTable from '../../../components/DataTable.astro';
+import ReferenceItem from '../../../components/ReferenceItem.astro';
 
 <PageIntro 
   subtitle="Empirical malware sample curation, VirusTotal authenticity validation, SHA-256 deduplication, and JSON report metadata extraction." 
@@ -97,13 +98,13 @@ These fields support the identification of analyzed samples and the extraction o
 
 The documented dataset preparation process includes sample collection, VirusTotal-based validation, SHA-256 duplicate removal, and segregation according to malware-class information.
 
-The experimental dataset consists of the samples whose analysis reports provide usable behavioral evidence and whose signatures map to at least one candidate D3FEND defense. These samples form the candidate dataset D of 17 samples and 2,823 signature–defense rows used by the optimization stage.
+The experimental dataset consists of the samples whose analysis reports provide usable behavioral evidence and whose signatures map to at least one candidate D3FEND defense. These samples form the candidate dataset D of 17 samples and 2,823 signature–defense rows. Validation rejects 32 rows in Sample07 and Sample08 that lack a `Signature_ID`, so the optimization stage uses 2,791 valid rows.
 
 ---
 
 ## Dataset Statistics
 
-Approximately 3,000 malware samples were collected. After sandbox analysis, signature extraction, impact quantification and ATT&CK–D3FEND mapping, the samples used for optimization form the **candidate dataset D**: one row (h, σ<sub>k</sub>, d, A<sub>k</sub>) for every sample h, triggered signature σ<sub>k</sub> and candidate defense d, with the signature's impact score A<sub>k</sub>. The current candidate dataset contains **17 samples and 2,823 rows**.
+Approximately 3,000 malware samples were collected. After sandbox analysis, signature extraction, impact quantification and ATT&CK–D3FEND mapping, the samples used for optimization form the **candidate dataset D**: one row (h, σ<sub>k</sub>, d, A<sub>k</sub>) for every sample h, triggered signature σ<sub>k</sub> and candidate defense d, with the signature's impact score A<sub>k</sub>. The current candidate dataset contains **17 samples and 2,823 rows**, of which **2,791 are valid**: 451 signatures (8–55 per sample) and 69–359 candidate rows per sample.
 
 The following table summarizes the dataset:
 
@@ -144,9 +145,33 @@ The following table summarizes the dataset:
     <td>Triggered signatures and associated attributes</td>
   </tr>
   <tr>
+    <td><strong>Inclusion criterion</strong></td>
+    <td>Reports with usable behavioral evidence whose signatures map to at least one D3FEND defense</td>
+  </tr>
+  <tr>
     <td><strong>Candidate dataset D</strong></td>
-    <td>17 samples, 2,823 rows of (h, σ<sub>k</sub>, d, A<sub>k</sub>)</td>
+    <td>17 samples, 2,823 rows <code>(Candidate_ID, Hash, Signature_ID, Defense_ID, Attack_Plan_Score, Reduced_Severity)</code></td>
+  </tr>
+  <tr>
+    <td><strong>Valid rows used</strong></td>
+    <td>2,791 rows; 451 signatures (8–55 per sample); 69–359 candidates per sample (32 rows in Sample07/Sample08 lack <code>Signature_ID</code> and are rejected by validation)</td>
+  </tr>
+  <tr>
+    <td><strong>Validation rules</strong></td>
+    <td>Required columns present; numeric fields parse; 1 ≤ A<sub>k</sub> ≤ 35; 0 ≤ RS ≤ 10 (CSV table); unique (Hash, Candidate_ID); identifiers normalized</td>
+  </tr>
+  <tr>
+    <td><strong>Splitting strategy</strong></td>
+    <td>Each sample is an independent optimization instance, so no train/test split is needed for the optimizer; seed = 42 + sample index. RS benchmark examples used in prompt development are excluded from the evaluation set.</td>
+  </tr>
+  <tr>
+    <td><strong>Held-out repository</strong></td>
+    <td>MLRan [20]: the Cuckoo-analysed ransomware part, 2,330 real ransomware samples from 64 families (the full dataset has over 4,800 samples including goodware). Used only for the attack-evolution check; it never influences the evolution.</td>
   </tr>
 </DataTable>
 
+---
 
+## References
+
+<ReferenceItem number={20} authors="F. C. Onwuegbuche, A. Olaoluwa, A. D. Jurcut, and L. Pasquale" title="MLRan: A behavioural dataset for ransomware analysis and detection" venue="arXiv:2505.18613" year="2025" url="https://zenodo.org/records/23403681" />

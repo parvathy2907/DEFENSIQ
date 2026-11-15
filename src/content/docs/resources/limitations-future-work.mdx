@@ -10,6 +10,21 @@ import PageIntro from '../../../components/PageIntro.astro';
   note="A transparent assessment of dataset coverage, sandbox observability, ontological mapping, LLM reasoning, and evolutionary optimization boundaries."
 />
 
+## Current Limitations Observed
+
+| Area | Limitation observed |
+|:---|:---|
+| **Dataset** | 17 optimization samples out of ≈3,000 collected; family and class imbalance not yet measured; temporal drift; repository acquisition bias; 32 rows missing `Signature_ID` |
+| **Sandbox** | Only behavior observed in one configured run; anti-VM/anti-sandbox evasion; execution-time limits; Windows guest only |
+| **Mapping** | ATT&CK inference can be ambiguous; ATT&CK–D3FEND coverage gaps (e.g. 4 of the 24 defense names in Sample02 did not resolve in D3FEND, leaving six signatures with no assessable candidate); granularity mismatch between attack and defense abstractions; knowledge bases evolve |
+| **Residual severity** | CSV table values are provisional; LLM estimates depend on evidence, prompt and model version, and MiST-8B rated 122 of 129 assessed Sample02 pairs as giving no reduction; no reference labels yet for QWK/MAE/F1 |
+| **Optimization** | Default budget stops early; single objective (no cost, overhead, false positives); per-sample optimization; a recommendation is not a deployment |
+| **Attack evolution** | Swapped-in signatures borrow rows from another sample; related signatures share a tag but are not equivalent; evolved samples are signature sets and were not run in the sandbox; the repository check shows co-occurrence in real ransomware, not that the malware would run; the defense search is randomised, so part of the change in F is search noise |
+
+The sections below discuss each area in more detail.
+
+---
+
 ## Overview
 
 The proposed framework integrates malware behavior analysis, MITRE ATT&CK technique mapping, ATT&CK–D3FEND defense mapping, signature impact quantification, Large Language Model (LLM)-based Residual Severity (RS) estimation, and Cooperative Co-Evolutionary Algorithm (CCEA)-based defense optimization. Although this design provides a structured approach to evaluating and selecting candidate defenses, its results are subject to limitations in dataset coverage, sandbox observability, behavior-to-defense mapping, LLM reliability, and optimization search.
@@ -120,9 +135,9 @@ The project should evaluate whether repeated runs and reasonable prompt variatio
 
 ### Bounded Output and Scale Alignment
 
-The RS output is an integer on a 0–10 scale, with 0 meaning that no severity remains. Responses outside this range are logged and excluded rather than silently corrected (see [Reduced Severity Estimation](/methodology/residual-severity/)). In CSV mode, RS values come from a pre-computed table, so the same limits apply to how that table was produced.
+RS is an integer, with 0 meaning that no severity remains. In LLM mode, MiST-8B returns RS from 0 to V<sub>k</sub>, the signature's original Cuckoo severity (1 to 6 in our data); in CSV mode, RS is read from a pre-computed table on the scale 0 to 10 (values 0 to 6 occur). Responses outside the range are logged and excluded rather than silently corrected (see [Residual Severity Estimation](/methodology/residual-severity/)). In CSV mode the same limits apply to how the table was produced, and its current values are provisional.
 
-CCEA normalizes RS by RS<sub>max</sub> = 10 and the impact score by its own 1–35 range, so both enter the fitness on a 0–1 scale. The relative weight of impact and residual severity in the fitness therefore depends on these two normalizations.
+In CSV mode CCEA normalizes RS by RS<sub>max</sub> = 10; in LLM mode it anchors RS to the signature's normalized impact (RM<sub>k</sub> = AM<sub>k</sub> · RS / V<sub>k</sub>). The impact score is normalized by its own 1–35 range, so both enter the fitness on a 0–1 scale. The relative weight of impact and residual severity in the fitness therefore depends on these two normalizations.
 
 ### Evaluation and Ground-Truth Limitations
 
@@ -130,7 +145,7 @@ The framework uses metrics such as Quadratic Weighted Kappa (QWK), normalized Me
 
 Human-reviewed or otherwise independently established reference assessments should be used wherever possible. The evaluation should also document the number and composition of test cases, the procedure used to establish reference labels, and whether the test set is separated from examples used during prompt development or tuning.
 
-The project uses Gemini 2.5 Flash-Lite. Results will be reported together with the exact model version and configuration used in each experiment.
+The project uses the MiST-8B model, run locally through Ollama (GGUF Q4_K_M). In the Sample02 case study, MiST-8B rated 122 of the 129 assessed pairs as giving no reduction, and the CCEA combination built on those estimates removed only 6.0% of the severity, against 81.0% with the provisional CSV table. Reference labels for QWK, MAE and macro-F1 have not yet been produced.
 
 ---
 
@@ -156,7 +171,7 @@ The CCEA fitness function combines normalized impact and residual-severity infor
 
 The fitness value is a model-based ranking criterion, not a direct guarantee of operational security. It also does not independently capture every deployment consideration, such as implementation cost, compatibility, system overhead, maintainability, or false-positive impact, unless these factors are explicitly incorporated into the evaluation.
 
-The current approach is single-objective; it is not a Pareto multi-objective optimization. It is cooperative co-evolution over the defense side only: the population of attack plans is fixed to the observed signatures and is not co-evolved with the defense search (see [Phase 1 → Phase 2](/methodology/evolution/)).
+The current approach is single-objective; it is not a Pareto multi-objective optimization. Within the defense search, the population of attack plans is fixed to the observed signatures. The attack is evolved separately by a second CCEA that swaps signatures for related ones, and the defense is re-optimised against every evolved sample (see [Attack Evolution](/methodology/attack-evolution/)).
 
 ### Recommendation Versus Deployment
 
@@ -170,9 +185,19 @@ Before operational use, candidate combinations require validation under represen
 
 <div class="academic-feature-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin: 1.5rem 0;">
   <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-accent);">🧩</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Interaction-Aware Fitness</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Evaluate RS on the whole combination, add defense cost, overlap and multi-signature coverage, and consider multi-objective (Pareto) optimization.</p>
+  </div>
+  <div class="academic-feature-card">
+    <div class="feature-icon" style="color: var(--sl-color-tech);">🧬</div>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Attack Evolution</h4>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Run the evolved samples in the sandbox to confirm that the swapped-in behaviors still execute, and extend the attack side to richer changes than swapping related signatures.</p>
+  </div>
+  <div class="academic-feature-card">
     <div class="feature-icon" style="color: var(--sl-color-accent);">📊</div>
     <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Broader Datasets</h4>
-    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Expand coverage across ransomware families, collection eras, and execution platforms, evaluating temporal stability against newly emerging strains.</p>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Run the full ≈3,000-sample corpus through the pipeline, across more families and collection periods, and check temporal stability.</p>
   </div>
   <div class="academic-feature-card">
     <div class="feature-icon" style="color: var(--sl-color-tech);">🔬</div>
@@ -187,12 +212,12 @@ Before operational use, candidate combinations require validation under represen
   <div class="academic-feature-card">
     <div class="feature-icon" style="color: var(--sl-color-orange);">🧠</div>
     <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Reliable RS Estimation</h4>
-    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Perform systematic prompt sensitivity studies, repeated-run stability checks, cross-model benchmarks, and explanation consistency validations.</p>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Build an expert-labelled reference set; report QWK, MAE and macro-F1; run prompt-sensitivity and repeated-run studies and cross-model benchmarks; replace the provisional CSV table with validated values.</p>
   </div>
   <div class="academic-feature-card">
     <div class="feature-icon" style="color: #06b6d4;">⚖️</div>
     <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">Robustness &amp; CCEA Baselines</h4>
-    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Benchmark CCEA over multiple random seeds against random selection, greedy choice, and exhaustive search on tractable sub-instances.</p>
+    <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0;">Adaptive termination, per-signature credit, and benchmarks against random and exhaustive search on tractable instances across many seeds.</p>
   </div>
   <div class="academic-feature-card">
     <div class="feature-icon" style="color: #ec4899;">🐧</div>
@@ -215,6 +240,6 @@ Before operational use, candidate combinations require validation under represen
 
 ## Conclusion
 
-The framework provides a structured pipeline for translating observed malware behavior into mapped defensive options, estimating residual severity, and searching for a suitable defense combination. Its conclusions remain bounded by the coverage of the malware dataset, the completeness of sandbox observations, the quality of attack-defense mappings, the reliability of LLM estimates, and the assumptions of the optimization objective.
+The project delivers an integrated, working framework that turns observed ransomware behavior into a recommended combination of D3FEND defenses. On 17 of about 3,000 collected samples (those with complete mappings), the recommended defenses cut the Malware Severity Score by 79% on average (p = 1.5 × 10⁻⁵) with the pre-computed RS table, and CCEA beat an equal-budget random search on 15 of 17 samples. When the malware is evolved, the defense generator still finds an optimised defense for it (mean score 0.789 on the original and 0.744 on the evolved samples, about 74% of the severity removed). The experiments also show that the RS source dominates the outcome, which sets a clear, evidence-based direction for the next iteration. Its conclusions remain bounded by the coverage of the malware dataset, the completeness of sandbox observations, the quality of attack-defense mappings, the reliability of the RS estimates, and the assumptions of the optimization objective.
 
 Future work should prioritize reproducible evaluation, dataset and mapping validation, robust RS estimation, and comparison of optimization results with appropriate baselines. Broader platform support, reinforcement learning, and active defense integration represent longer-term opportunities that require independent implementation and empirical validation.

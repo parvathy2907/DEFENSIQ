@@ -1,285 +1,209 @@
 ---
-title: "Reduced Severity Estimation (CSV and LLM)"
-description: "The Reduced_Severity module: how the residual severity RS of each signature–defense pair is obtained on a 0–10 scale, from a pre-computed table or from Gemini 2.5 Flash-Lite, and how it is validated."
+title: "Residual Severity Estimation (CSV and LLM)"
+description: "The Residual_Severity module: how the residual severity RS of each signature–defense pair is obtained, from a pre-computed table (CSV mode) or from the locally run MiST-8B model (LLM mode), and how it is validated."
 ---
 
 import PageIntro from '../../../components/PageIntro.astro';
+import ReferenceItem from '../../../components/ReferenceItem.astro';
 
 <PageIntro 
-  subtitle="The Reduced_Severity module answers one question for CCEA: how much of a signature's severity remains when a given D3FEND defense is applied? It returns RS(σ, d) on a 0–10 scale with a FULL, PARTIAL or NONE label, either from a pre-computed RS table (CSV mode) or from Gemini 2.5 Flash-Lite (LLM mode)." 
-  note="RS is called reduced severity in the implementation (the Reduced_Severity module) and residual severity in the text; both mean the severity remaining after the defense."
+  subtitle="The Residual_Severity module answers one question for CCEA: how much of a signature's severity remains when a given D3FEND defense is applied? It returns the residual severity RS(σ, d), an integer where 0 means nothing is left, together with a FULL, PARTIAL or NONE label, either from a pre-computed RS table (CSV mode) or from the MiST-8B model run locally (LLM mode)." 
+  note="The data files keep the historical column name Reduced_Severity; in the text the quantity is called residual severity. Both mean the severity remaining after the defense."
 />
 
-LLM-based residual-severity estimation evaluates the potential effect of a defensive mechanism on an observed malware behavior. In this project, the Large Language Model (LLM) acts as a reasoning component that examines an attack–defense pair and estimates the severity that may remain after considering the defense.
-
-The evaluation uses structured information about the behavioral signature, its impact score, relevant ATT&CK technique, attack artifacts, candidate defensive mechanism, and available defense-artifact relationships. The resulting residual-severity (RS) estimate is supplied to the Cooperative Co-Evolutionary Algorithm (CCEA), which uses the estimate when evaluating candidate defense combinations.
-
-The purpose of this module is to provide a consistent, machine-readable assessment of individual attack–defense pairs that can be evaluated against reference labels and used during defense optimization.
+The Residual_Severity module estimates the remaining severity of a malware behavior when it is evaluated against a selected defensive technique. The estimate is supplied to the Cooperative Co-Evolutionary Algorithm (CCEA), which uses it when it scores candidate defense combinations.
 
 ---
 
 ## Two Modes: CSV and LLM
 
-| Mode | How RS is obtained | When it is used |
+| Mode | Source of residual severity | Purpose |
 |:---|:---|:---|
-| **CSV mode** | Looked up in a pre-computed RS table with one row per signature–defense pair in the candidate dataset | Optimization runs that must be fast and exactly repeatable, and the CCEA-versus-greedy comparison, where both methods must use the same RS source |
-| **LLM mode** | Estimated by Gemini 2.5 Flash-Lite from structured attack and defense evidence, then validated | Pairs that are not yet in the table, and studies of the LLM's estimates themselves |
+| **CSV mode** | Pre-computed RS table containing one result per signature–defense pair | Enables fast, deterministic and repeatable evaluation, allowing CCEA and random search to use an identical RS source |
+| **LLM mode** | Locally executed MiST-8B model using structured attack and defense context | Estimates RS for individual signature–defense pairs and supports evaluation of model-generated assessments |
 
-A mode toggle selects the source; CCEA calls the module the same way in both modes. Both modes return the same output: RS(σ<sub>k</sub>, d<sub>k</sub>) ∈ [0, 10] and a mitigation label. The rest of this page describes how LLM-mode estimates are produced and validated; the same validation rules apply to every row of the RS table.
+The operating mode is selected through a configuration toggle, and both modes expose a common RS interface to the CCEA. The optimizer does not change when the RS source changes.
 
 ---
 
-## Purpose of Residual-Severity Estimation
+## RS Value Used in This Work
 
-Identifying a defensive mechanism that is associated with an attack technique does not establish how effectively it mitigates the corresponding behavior. Some defenses restrict an operation, others monitor or detect activity, and some strengthen a system against particular attack paths. Their effects depend on the behavior being evaluated and the capabilities of the defensive mechanism.
+Residual severity RS is an integer, and its scale depends on the mode.
 
-Manually assessing every attack–defense combination can be time-consuming, particularly when the dataset contains many signatures and candidate defenses. An LLM can assist by interpreting the supplied structured evidence and producing a residual-severity estimate for each pair.
+| Mode | Scale of RS | Meaning of the ends | Values that occur | How RS enters the fitness |
+|:---|:---|:---|:---|:---|
+| **CSV mode** | Integer from 0 to RS<sub>max</sub> = 10 | 0 = nothing left; a larger value = less of the behavior is mitigated | 0 to 6 in our table | RM<sub>k</sub> = RS / RS<sub>max</sub> |
+| **LLM mode** | Integer from 0 to V<sub>k</sub>, the original Cuckoo severity of the signature | 0 = nothing left; V<sub>k</sub> = the defense does not reduce the behavior | V<sub>k</sub> is 1 to 6 in our data; 1 to 4 for Sample02 | RM<sub>k</sub> = AM<sub>k</sub> · RS / V<sub>k</sub> |
 
-In this project, the LLM evaluates the relationship between an observed attack behavior and a candidate defense. It considers the defensive action, the relevant artifacts and behavior, and the attack severity information provided as input.
+In LLM mode the residual is anchored to the signature's normalized impact AM<sub>k</sub>, so no mitigation leaves RM<sub>k</sub> = AM<sub>k</sub> and full mitigation gives RM<sub>k</sub> = 0. A signature whose candidate defenses were all skipped (no D3FEND match) has no assessed candidate and keeps RM<sub>k</sub> = AM<sub>k</sub>. In both modes RM<sub>k</sub> lies in [0, 1]. The full fitness is on the [CCEA page](/methodology/ccea/).
 
-:::note[Prediction vs. Verified Risk]
-The output represents an estimate of the severity that may remain after considering the defense. It is not automatically a verified risk value, and the model must not assume that a mapped defense completely mitigates an attack merely because the two are ontologically related.
+:::note[Prediction vs. verified risk]
+RS is an estimate of the severity that may remain after considering the defense. It is not a verified risk value, and a mapped defense is not assumed to mitigate an attack merely because the two are related in the ontology.
 :::
 
-The RS estimate serves two core roles in the overall framework:
+---
 
-1. **Attack–defense evaluation:** It provides a severity estimate for an individual signature–defense pair.
-2. **Defense optimization:** It serves as an input to the fitness calculation used by CCEA to compare candidate defense combinations.
+## Inputs
 
-The reliability of this component is therefore critical to the optimization process. Its predictions must be validated independently against ground-truth benchmarks rather than assumed correct because the model provides an explanation.
+Each input row represents one signature–defense assessment and contains:
+
+- **Attack-side context:** the Cuckoo signature name or identifier; the original Cuckoo severity; the MITRE ATT&CK tactic and technique; the signature description and categories; the trigger type and a summary of the detection logic; and the available API filters, indicators and TTP metadata. Attack information is retrieved from the pre-generated `cuckoo_signatures.json` catalogue. Missing metadata is explicitly identified rather than inferred without supporting evidence.
+- **Defense-side context:** the exact MITRE D3FEND defense name supplied in the input; the resolved D3FEND identifier and ontology URI; the official defense definition; the associated digital artifacts; defensive relationships such as `blocks`, `filters`, `restricts`, `analyzes`, `strengthens` and `hardens`, wherever available; and the provenance of each ontology relationship. Defense names are resolved against the D3FEND ontology using RDFLib and exact label matching. Unresolved or ambiguous defenses are marked and skipped rather than guessed.
 
 ---
 
-## Model Configuration
+## Execution Flow
 
-The LLM is used as an external semantic reasoning component. It receives the structured information prepared by the project's preceding modules and returns a structured mitigation assessment.
+Each run proceeds in seven steps:
 
-The project uses **Google Gemini 2.5 Flash-Lite** (`gemini-2.5-flash-lite`) as its residual-severity model. If the evaluation is extended to additional models, each model's configuration is recorded separately.
+1. **Input ingestion:** read the input table (with columns such as signature name, tactics, technique, defense and initial severity), validate the required columns, preserve a stable evaluation identifier for each row, and compute an input hash for reproducibility and resume checks.
+2. **RDF graph construction:** use RDFLib to represent each assessment row and its links to the signature, ATT&CK tactic, ATT&CK technique, defense and initial severity.
+3. **Cuckoo metadata retrieval:** look up the signature in `cuckoo_signatures.json` (generated from the original Cuckoo signature files) for its description, severity, categories, TTP metadata, monitored APIs, trigger type, detection summary, indicators and source file. The pipeline consumes this catalogue and does not parse or execute the original Python signatures.
+4. **D3FEND ontology ingestion:** load the pinned D3FEND OWL/TTL ontology into an RDFLib graph and retrieve the defensive-technique labels and digital-artifact vocabulary.
+5. **Defense resolution:** resolve the supplied defense name and, for a unique match, retrieve its identifier, URI, definition, associated artifacts and artifact relationships.
+6. **Unified MiST-8B assessment:** combine the attack, ATT&CK and defense context with the initial severity in one prompt; a single inference call per resolvable row returns the artifact interpretation and the RS estimate together.
+7. **Validation and storage:** parse and validate the response, attach the result to the RDF assessment, checkpoint the graph, and export a summary CSV of evaluated and skipped rows.
 
-Each experimental run records the following settings:
+Each row is assessed on its own: the model considers only the defense in the current row and does not assume that the signature's other candidate defenses are deployed. The Cuckoo metadata is signature-derived behavioral evidence, not complete raw sandbox telemetry, and the original TTP metadata is not treated as an independently revalidated ATT&CK mapping.
 
-| Configuration Item | Information to Record |
+---
+
+## Defense Resolution Statuses
+
+Every row receives one of five statuses:
+
+| Status | Handling |
 |:---|:---|
-| **Model Provider** | Provider or inference platform (e.g., Google AI / Vertex AI). |
-| **Model Identifier** | Exact model name and version checkpoint (e.g., `gemini-2.5-flash-lite`). |
-| **Input Representation** | Fields supplied for each attack–defense pair. |
-| **Prompt Version** | Version or cryptographic hash of the prompt template. |
-| **Temperature** | Configured sampling temperature for deterministic reasoning. |
-| **Top-p** | Configured nucleus sampling value, where supported. |
-| **Output Format** | Structured JSON schema specification. |
-| **Validation Method** | Schema parsing and severity-constraint checks (integer `0 ≤ RS ≤ 10`). |
-| **Reproducibility Settings** | Random seeds and generation hyperparameters. |
-| **Execution Metadata** | Timestamp, inference latency, token usage, and API response status. |
+| `exact_match` | One ontology term matches the supplied label; context is retrieved and the row proceeds to inference |
+| `normalized_match` | A match is found after permitted normalization (e.g. trimming whitespace); the status is recorded and the row proceeds |
+| `ambiguous_match` | Several candidates match; the row and its candidates are preserved and inference is skipped pending resolution |
+| `not_found_in_d3fend` | No match is found; the row is preserved and skipped, and no identifier or substitute defense is invented |
+| `retrieval_error` | Ontology parsing or retrieval fails; the error is recorded and the row is not treated as matched |
 
-:::tip[Comparative Experimental Protocol]
-When comparing models, both models must receive identical sample evidence, impact scores, attack artifacts, defense information, and equivalent reasoning instructions. The model identifier and configuration used for each run must be retained with the results.
-:::
+A skipped row is not a model prediction: its RS remains null and it is excluded from prediction-accuracy metrics, with the number of skipped rows reported separately.
 
 ---
 
-## Inputs to the Reasoning Process
+## MiST-8B Assessment
 
-The RS estimator receives structured information describing the observed behavior and the candidate defense. The available data determine what the model can evaluate.
+In LLM mode, the retrieved attack and defense contexts are combined into a single structured prompt and submitted to the local MiST-8B model (served by Ollama, GGUF Q4_K_M, 4-bit quantization). For each signature–defense pair, the model performs a unified assessment:
 
-### 1. Attack Information
+1. interprets the observed malware behavior using the Cuckoo signature metadata and ATT&CK context;
+2. identifies the relevant attack artifacts and evaluates the defensive scope described by D3FEND;
+3. assesses the relationship between the attack behavior and the selected defense;
+4. identifies the behaviors addressed by the defense and the capabilities that may remain;
+5. estimates the residual severity based on the available evidence.
 
-The attack-side input contains:
+The assessment follows six rules:
 
-- Signature name or canonical identifier.
-- Impact score A<sub>k</sub> of the signature (1–35), as context for how severe the behavior is.
-- Associated ATT&CK tactic and technique, when available.
-- Attack digital artifacts (e.g., target file types, memory spaces, registry hives).
-- Relevant API or behavioral evidence, when available and included in the configured input.
-
-The attack artifacts represent the components or resources associated with the observed behavior. API and execution evidence help explain the behavior when those fields are supplied.
-
-### 2. Defense Information
-
-The defense-side input contains:
-
-- Defensive technique name or identifier (e.g., D3FEND canonical ID).
-- Defense digital artifacts.
-- Defensive relationships or actions, such as `filters`, `isolates`, `monitors`, `analyzes`, `hardens`, or `strengthens`, where supported by the mapping data.
-- Relevant source identifiers or provenance information, where available.
-
-The supplied defense information must come directly from the project's curated defense dataset and mapping process. The LLM must not invent defensive capabilities or unsupported relationships.
-
-### 3. Severity Information
-
-Residual severity is reported on its own fixed scale. The model evaluates the attack–defense pair directly rather than applying a predetermined numerical deduction for a defense category.
-
-The accepted prediction must satisfy:
-
-```text
-RS ∈ [0, 10]        (0 = no severity remains, 10 = the defense has no effect)
-```
-
-CCEA normalizes RS by RS<sub>max</sub> = 10, so RS and the impact score A<sub>k</sub> (normalized from its own 1–35 scale) both enter the fitness on a 0–1 scale. IS on the [CCEA page](/methodology/ccea/) is the aggregate impact severity of the whole sample, not a per-signature bound.
-
-### 4. Structured Input Preparation
-
-Before a model request is dispatched, the required information is assembled into a consistent input representation. This ensures that every evaluated pair can be associated with its signature, impact score, candidate defense, and relevant mapping evidence.
-
-Missing information remains explicitly missing rather than being replaced with invented facts. The model is instructed to identify relevant uncertainty when the supplied evidence does not support a confident assessment.
+- estimate RS directly, without predefined numerical deductions for individual defense categories;
+- do not assume that an artifact relationship guarantees mitigation;
+- do not assume a defense is ineffective solely because the listed artifacts differ;
+- do not invent defensive capabilities, deployment conditions or attack evidence;
+- distinguish preventive, restrictive, detective and observational capabilities where the ontology supports it;
+- explicitly flag uncertainty when the supplied evidence is insufficient.
 
 ---
 
-## Prompt Structure Template
-
-The following prompt engineering template governs the project's RS estimation task. The actual prompt used during each experiment is versioned and archived.
-
-### System Instructions
-
-```text
-You are a cybersecurity residual-severity estimation assistant.
-
-Your task is to evaluate an observed attack behavior in the context of a candidate 
-defensive mechanism and estimate the residual severity.
-
-Use the supplied structured evidence to assess how the defense may affect the attack 
-behavior and what malicious capability may remain.
-
-Consider the nature of the defensive action and its relevance to the observed behavior. 
-Do not assume that artifact relationships guarantee complete mitigation. 
-Do not assume that a defense has no effect solely because the listed artifacts differ.
-
-Do not invent defense capabilities, mappings, or evidence that are not provided. 
-If the available information is insufficient, state the uncertainty in the response.
-
-Estimate residual severity directly. Do not apply predefined deductions or fixed 
-severity-reduction rules for defense categories.
-
-Return an integer residual-severity value satisfying:
-0 <= RS <= 10
-
-Return only a response conforming to the specified output schema.
-```
-
-### Input Payload Schema
-
-The request supplies the relevant fields for each evaluated case:
-
-- Signature name or identifier.
-- ATT&CK tactic and technique, if available.
-- Impact score A<sub>k</sub> of the signature (1–35), as context for how severe the behavior is.
-- Attack artifacts and relevant behavioral evidence.
-- Candidate defensive technique.
-- Defense artifacts and supplied defensive relationships or actions.
-
-The input strictly excludes information that is absent from the project's data or unsupported by its mapping evidence.
-
----
-
-## Evaluation of Defensive Effectiveness
-
-The LLM evaluates whether the candidate defense is likely to mitigate the observed behavior and estimates the severity that may remain.
-
-The assessment distinguishes between a defense's stated capability and its likely effect on a specific attack behavior:
-- A **monitoring mechanism** may provide evidence of suspicious activity without directly preventing the activity.
-- A **filtering mechanism** may restrict an operation if its implemented policy covers the relevant system call or vector.
-
-The assessment evaluates five core factors:
-
-1. The specific behavior represented by the signature.
-2. The operational function of the candidate defense.
-3. The supplied defense-artifact relationships and supporting evidence.
-4. The attack capability that may remain after considering the defense.
-5. Uncertainty resulting from missing information or limitations of the mapping.
-
-:::caution[No Predefined Numerical Reductions]
-The project must not translate defense categories into fixed numerical reductions (e.g., deducting 10 points for "Harden"). The LLM returns the RS value directly based on contextual evidence, while the evaluator validates the result against the permitted severity range.
-:::
-
-The categorical mitigation labels `NONE`, `PARTIAL` and `FULL` describe the assessed mitigation outcome. They complement the numerical RS estimate; they are validated separately and do not replace validation of the RS value.
-
----
-
-## Residual-Severity Output Schema
-
-The model returns a structured JSON response containing the predicted RS and a concise justification of the estimate. The schema is validated before the prediction is passed to downstream modules.
+## Output Schema
 
 | Field | Type | Meaning |
 |:---|:---|:---|
-| `evaluation_id` | string | Unique ID for the signature–defense pair |
-| `signature_name` | string | The attack signature evaluated |
-| `defense_name` | string | The D3FEND defense evaluated |
-| `impact_score` | integer | A<sub>k</sub>, copied from the input (1–35) |
-| `residual_severity` | integer | RS, from 0 to 10 |
-| `mitigation_label` | enum | `NONE`, `PARTIAL` or `FULL` |
-| `remaining_attack_capability` | string | What the attack can still do with the defense in place |
-| `justification` | string | Short reasoning for the estimate |
-| `uncertainty_flag` | boolean | True when the supplied evidence is insufficient |
-
-
-
-:::note[Confidence Interval Guideline]
-The schema has no confidence-interval field. A model's own statement of confidence is not a statistically calibrated interval, so the project does not report one.
-:::
+| `evaluation_id` | String | Unique identifier of the signature–defense assessment |
+| `signature_name` | String | Cuckoo behavioral signature being evaluated |
+| `defense_name` | String | Selected D3FEND defensive technique |
+| `initial_severity` | Numeric | Original Cuckoo severity, preserved without MAGIC quantization |
+| `residual_severity` | Integer | Estimated severity remaining after considering the selected defense: 0 (nothing left) to V<sub>k</sub>, the original Cuckoo severity of the signature |
+| `mitigation_label` | Enum | `NONE`, `PARTIAL` or `FULL` |
+| `covered_behaviors` | Array | Observed behaviors addressed by the defense |
+| `remaining_attack_capability` | String | Capabilities that may remain after considering the defense |
+| `justification` | String | Concise, evidence-based explanation for the RS estimate |
+| `uncertainty_flag` | Boolean | Whether the supplied evidence is insufficient for a reliable assessment |
 
 ---
 
 ## Output Validation
 
-The output-validation stage checks whether the model response satisfies the required structure and severity constraints. It prevents malformed or invalid predictions from silently entering the fitness calculation.
+Every MiST-8B response undergoes seven checks:
 
-The validation pipeline enforces seven checks:
+1. strict JSON parsing;
+2. schema and data-type validation;
+3. residual-severity numeric-type validation;
+4. severity-range validation: 0 ≤ RS ≤ V<sub>k</sub> (LLM mode; 0 ≤ RS ≤ 10 in CSV mode);
+5. mitigation-label validation against \{`NONE`, `PARTIAL`, `FULL`\};
+6. provenance checks against the supplied attack and defense context;
+7. logging of invalid outputs, local inference errors and failed correction attempts.
 
-1. **JSON Parsing:** Parse the response payload strictly as valid JSON.
-2. **Schema & Types:** Validate required fields and data types against the schema.
-3. **Integer Scale:** Confirm that residual severity is an integer.
-4. **Boundary Constraint:** Enforce `0 ≤ RS ≤ 10`.
-5. **Categorical Consistency:** Validate categorical labels against allowed values (`NONE`, `PARTIAL`, `FULL`).
-6. **Provenance Check:** Confirm that referenced defense information is consistent with the supplied input.
-7. **Error Logging:** Record invalid outputs, provider errors, and failed correction attempts.
-
-:::caution[No Silent Clamping]
-If a response is invalid, the system may request a limited correction according to the experimental protocol. It must **not** silently clamp an out-of-bounds prediction (e.g., rounding an invalid `RS > 10` down to `10`), as doing so would conceal model reasoning failures.
+:::caution[No silent clamping]
+Out-of-range values are never silently clamped. Invalid responses are logged and may undergo a controlled correction attempt. A structurally valid response does not establish empirical correctness, so RS estimates must be evaluated separately against reference assessments.
 :::
 
-Successful structural validation establishes that the output conforms to the schema; it does not prove that the predicted severity is empirically correct.
+---
+
+## Scope of Claims
+
+The module estimates RS from Cuckoo-derived behavioral evidence and D3FEND ontology context, resolves defense names against a specified ontology version, identifies ontology artifact relationships, and produces structured outputs that pass defined validation. It does not claim that a defense experimentally stops the malware, that artifact overlap alone proves mitigation, that every valid JSON response is correct, or that a D3FEND relationship guarantees real-world effectiveness. Real effectiveness also depends on deployment, configuration, coverage and environment.
 
 ---
 
-## Ground Truth and Benchmark Evaluation
+## Experiment Logging and Reproducibility
 
-The RS estimator must be evaluated against a reference dataset containing ground-truth severity labels. These labels are established independently of the predictions being evaluated.
+Each LLM assessment records:
 
-Each evaluated record retains the signature, impact score, candidate defense, relevant input evidence, ground-truth RS, model prediction, and evaluation status.
+- the provider and runtime (local inference) and the model identifier (MiST-8B);
+- the model quantization and runtime configuration, where available;
+- the input representation and retrieved context, and the prompt version or hash;
+- the temperature and sampling parameters, and the random seed where supported;
+- the output schema and validation method;
+- the timestamp, inference latency and token usage (where available);
+- the response and validation status.
 
-### Evaluation Metrics
-
-| Metric | Purpose |
-|:---|:---|
-| **Quadratic Weighted Kappa (QWK)** | Measures inter-rater agreement between ordered severity labels while penalizing the squared magnitude of disagreements. |
-| **Normalized Mean Absolute Error (MAE / 10)** | Measures average prediction error as a fraction of the RS scale. |
-| **Exact-Match Accuracy** | Measures the proportion of predictions exactly equal to the ground-truth RS (Predicted RS = Ground Truth RS). |
-| **Tolerance Accuracy (Accuracy@±1)** | Measures the proportion of predictions within ±1 severity unit of ground truth (|Predicted RS − True RS| ≤ 1). |
-| **Macro-Averaged F1 for Mitigation Labels** | Evaluates categorical mitigation classification performance across the defined classes. |
-
-The metrics provide complementary views of prediction quality. Exact-match accuracy measures precise alignment, while normalized error captures deviation magnitude. QWK is suited for an ordered severity scale, and macro-averaged F1 evaluates categorical classification.
-
-The evaluation must report the number of eligible cases, skipped records, invalid predictions, failed requests, and successful predictions.
+The RDF graph and summary CSV preserve the individual assessment results. Resume functionality prevents previously generated results from being reused when the run identity changes; that identity covers the input CSV hash, the Cuckoo JSON hash, the D3FEND ontology version or file hash, the MiST-8B identifier and quantization or runtime configuration, the prompt version or hash, the output-schema and validation version, and the inference parameters. Fields the local runtime does not expose are recorded as unavailable rather than estimated.
 
 ---
 
-## Limitations and Uncertainty
+## Benchmark Metrics
 
-LLM-based residual-severity estimation has several documented limitations:
+The RS estimates are evaluated against independently labelled reference values. For *n* signature–defense pairs, let ŷ<sub>i</sub> be the predicted and y<sub>i</sub> the reference residual severity. Both are integers on the RS scale of this work: from 0 (nothing left) up to RS<sub>max</sub> = 10, the upper bound of the scale (in LLM mode the values stay at or below V<sub>k</sub> ≤ 6). All metrics use this one scale, so that results for different signatures can be pooled.
 
-### 1. Dependence on Input Evidence
-The model can only reason from the evidence supplied and the knowledge available in its pre-training weights. Incomplete sandbox observations, missing API traces, or incomplete defense mappings can lead to inaccurate estimates.
+| Metric | Definition | Purpose |
+|:---|:---|:---|
+| **Quadratic Weighted Kappa (QWK)** | 1 − Σ w<sub>ij</sub>O<sub>ij</sub> / Σ w<sub>ij</sub>E<sub>ij</sub>, with w<sub>ij</sub> = (i − j)² / RS<sub>max</sub>² | Agreement on an ordinal scale; a large miss is penalized more than a near miss |
+| **Normalized MAE** | (1/n) Σ \|ŷ<sub>i</sub> − y<sub>i</sub>\| / RS<sub>max</sub> | Each error as a share of the RS scale |
+| **Exact-match accuracy** | (1/n) Σ [ŷ<sub>i</sub> = y<sub>i</sub>] | Share of exact predictions |
+| **Accuracy@±1** | (1/n) Σ [\|ŷ<sub>i</sub> − y<sub>i</sub>\| ≤ 1] | Separates near-misses from real errors |
+| **Macro-F1** | Mean F1 over FULL, PARTIAL and NONE | Quality of the mitigation labels |
 
-### 2. Model and Prompt Sensitivity
-Predictions may vary with model versions, prompt phrasing, generation hyperparameters, and inference implementations. These settings must be recorded to support reproducibility.
+Each run reports the numbers of eligible, skipped, invalid, failed and successful cases. Reference labelling is in progress, so these metrics have not yet been reported; see [Results](/evaluation/results/) for the Sample02 case study.
 
-### 3. Incorrect Assumptions About Defenses
-The model may overestimate or underestimate a defense's effect. A technically related defense does not necessarily prevent the behavior, and a mapped relationship does not provide a numerical measure of mitigation strength.
+---
 
-### 4. Unseen Behaviors and Environmental Differences
-A malware sample may exhibit different behavior outside the analyzed sandbox environment. The resulting RS estimates are therefore bounded by the behaviors represented in the input and cannot be interpreted as guarantees of protection against unknown attack paths.
+## Limitations
 
-### 5. Reference-Label Limitations
-Ground-truth RS labels may involve expert judgment and inherent ambiguity. Evaluation results must document how reference labels were established and the severity scale used.
+1. **Dependence on input evidence:** the model reasons only from the evidence supplied. Incomplete sandbox observations or incomplete defense mappings can lead to inaccurate estimates.
+2. **Model and prompt sensitivity:** estimates may vary with the model version, quantization, prompt and inference parameters, which are therefore recorded.
+3. **Assumptions about defenses:** the model may over- or underestimate a defense's effect. A related defense does not necessarily prevent the behavior.
+4. **D3FEND coverage:** a defense name that does not resolve in D3FEND is skipped; in Sample02, 4 of 24 defense names did not resolve, leaving six signatures with no assessable candidate.
+5. **Reference labels:** no reference labels exist yet, so QWK, MAE and macro-F1 cannot yet be reported.
+6. **Limits of validation:** schema and range checks establish that a prediction is structurally valid, not that it reflects the real effectiveness of a defense.
 
-### 6. Limits of Output Validation
-Schema validation and severity constraints ensure that a prediction is structurally valid and within the allowed range (`0 ≤ RS ≤ 10`). They do not establish that the prediction reflects the true operational effectiveness of a defensive mechanism.
+---
+
+## References
+
+<ReferenceItem 
+  number={14} 
+  authors="P. E. Kaloroumakis and M. J. Smith" 
+  title="Toward a knowledge graph of cybersecurity countermeasures" 
+  venue="The MITRE Corporation" 
+  year="2021" 
+/>
+
+<ReferenceItem 
+  number={18} 
+  authors="N. O. Jaffal, M. Alkhanafseh, and D. Mohaisen" 
+  title="Large language models in cybersecurity: A survey of applications, vulnerabilities, and defense techniques" 
+  venue="AI, vol. 6, no. 9, Art. no. 216" 
+  year="2025" 
+  doi="10.3390/ai6090216" 
+/>

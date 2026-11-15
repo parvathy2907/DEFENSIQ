@@ -60,11 +60,12 @@ The project focuses on ransomware-related behavior analysis and defense optimiza
 1. **Malware analysis:** Malware samples are analyzed using a virtual-machine-based Cuckoo Sandbox environment. The analysis reports provide behavioral evidence, triggered signatures, and relevant execution information.
 2. **Behavioral signature processing:** The framework extracts and processes signature information from the generated reports. The analysis is limited to behaviors observed or recorded during the configured sandbox execution.
 3. **Attack and defense mapping:** Observed behaviors are associated with MITRE ATT&CK tactics, techniques, and sub-techniques. Candidate defensive mechanisms are identified through the project's ATT&CK–D3FEND mapping process.
-4. **Severity assessment:** Signature impact quantification and LLM-based residual-severity estimation provide severity-related information for attack–defense evaluation. The quality of these estimates is assessed using the available reference labels and evaluation metrics.
+4. **Severity assessment:** Signature impact quantification and residual-severity estimation (CSV table or the locally run MiST-8B model) provide severity-related information for attack–defense evaluation. The quality of these estimates is assessed using the available reference labels and evaluation metrics.
 5. **Defense optimization:** CCEA evaluates combinations of candidate defenses using the project's fitness function and search configuration. The output is a recommended defense combination for the evaluated attack scenario.
-6. **Experimental evaluation:** The evaluation covers the tested dataset, configured analysis environment, selected model, optimization parameters, and the case studies used in the experiments. Conclusions are limited to the evaluated samples and conditions.
+6. **Attack evolution:** The sample is evolved by swapping its signatures for related ones, and the defense search is re-run on every evolved sample.
+7. **Experimental evaluation:** The evaluation covers the tested dataset, configured analysis environment, selected model, optimization parameters, and the case studies used in the experiments. Conclusions are limited to the evaluated samples and conditions.
 
-The project is intended to support the analysis and selection of defensive strategies. It does not claim to replace established malware detection, endpoint protection, backup, or incident-response mechanisms. Its results depend on the completeness of observed behavior, the quality of attack–defense mappings, the accuracy of residual-severity estimates, and the search configuration.
+The project is intended to support the analysis and selection of defensive strategies. It does not claim to replace established malware detection, endpoint protection, backup, or incident-response mechanisms; it does not deploy defenses; and it does not claim improvements in MTTR. Its results depend on the completeness of observed behavior, the quality of attack–defense mappings, the accuracy of residual-severity estimates, and the search configuration.
 
 ---
 

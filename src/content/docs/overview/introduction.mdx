@@ -84,8 +84,9 @@ This project addresses these challenges through an integrated workflow:
 - **MITRE ATT&CK** supplies a structured vocabulary for characterizing adversarial techniques.
 - **MITRE D3FEND** supports the mapping of candidate defensive mechanisms.
 - **Signature impact quantification** provides severity-related information.
-- **Large Language Model (LLM)** evaluates individual attack–defense pairs to estimate residual severity (RS).
+- **Residual_Severity module** estimates the residual severity (RS) of each attack–defense pair, from a pre-computed table or with the locally run MiST-8B model.
 - **Cooperative Co-Evolutionary Algorithm (CCEA)** searches for effective defense combinations using the resulting estimates.
+- **Attack evolution** changes the sample by swapping signatures for related ones and checks that the defense search still finds a good defense.
 
 The motivation is to provide a systematic and explainable basis for comparing defensive strategies, reduce the manual effort involved in repeated attack–defense assessments, and support the selection of candidate defenses through measurable optimization. The framework is intended as a decision-support approach; its recommendations must still be evaluated against appropriate reference data and experimental results.
 
@@ -97,16 +98,17 @@ This work is an academic research project titled **An Evolutionary Framework for
 
 The project begins with ransomware samples analyzed in a controlled Cuckoo Sandbox environment. The generated reports are parsed to identify triggered behavioral signatures and relevant execution evidence. These behaviors are associated with MITRE ATT&CK tactics, techniques, and sub-techniques, after which candidate defensive mechanisms are identified through the project's ATT&CK–D3FEND mapping process.
 
-The signature impact quantification component assigns and refines behavior-related severity scores. The LLM-based residual-severity component then evaluates the likely effect of a defensive mechanism on a given attack behavior and estimates the remaining severity. Finally, CCEA evaluates candidate defense combinations using the resulting severity estimates and a fitness function, iteratively retaining promising solutions and selecting a recommended combination.
+The signature impact quantification component assigns and refines behavior-related severity scores. The LLM-based residual-severity component then evaluates the likely effect of a defensive mechanism on a given attack behavior and estimates the remaining severity. Finally, CCEA evaluates candidate defense combinations using the resulting severity estimates and a fitness function, iteratively retaining promising solutions and selecting a recommended combination. Optionally, the attack is then evolved by a second CCEA, and the defense search is re-run on every evolved sample.
 
-### Six Technical Components
+### Seven Technical Components
 
 1. **Dynamic malware analysis:** Collect behavioral evidence and triggered signatures from controlled sample execution in Cuckoo Sandbox.
 2. **Signature impact quantification:** Assign each signature an impact score A<sub>k</sub> on a 1–35 scale using the MAGIC approach.
 3. **ATT&CK–D3FEND mapping:** Map each signature to an ATT&CK technique, the technique to its ATT&CK mitigations, and each mitigation to a pool of candidate D3FEND defenses.
-4. **Reduced-severity estimation:** Estimate the severity RS<sub>k</sub> ∈ [0, 10] that remains when a candidate defense is applied, from a pre-computed table or with an LLM (Gemini 2.5 Flash-Lite).
+4. **Residual-severity estimation:** Estimate the severity RS<sub>k</sub> that remains when a candidate defense is applied, an integer where 0 means nothing is left, from a pre-computed table (CSV mode, 0 to 10) or with the locally run MiST-8B model (LLM mode, 0 to the signature's original Cuckoo severity).
 5. **Evolutionary defense optimization:** Search for the defense combination with the highest collaborative fitness using CCEA.
-6. **Evaluation:** Compare the Malware Severity Score before and after defenses, compare CCEA with a greedy baseline, and test the differences statistically.
+6. **Attack evolution:** Swap the sample's signatures for related ones (signatures that share a public MITRE tag) with a second CCEA, and re-run the defense search on every evolved sample.
+7. **Evaluation:** Compare the Malware Severity Score before and after defenses, compare CCEA with an equal-budget random-search baseline, and test the differences statistically.
 
 The scope is defense analysis and optimization using the collected behavioral evidence. The framework does not assume that sandbox observations capture every possible malware behavior, that an LLM estimate is automatically correct, or that a recommended defense combination guarantees complete prevention in a production environment.
 

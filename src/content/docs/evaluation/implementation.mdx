@@ -1,0 +1,86 @@
+---
+title: "Implementation"
+description: "Implementation environment, testbed isolation, software stack, module-wise completion status and module descriptions of the framework."
+---
+
+import PageIntro from '../../../components/PageIntro.astro';
+
+<PageIntro 
+  subtitle="All modules are implemented and connected to the optimizer core. A single core module is imported by the notebooks, the API and the tests, so every path produces identical numbers."
+/>
+
+## Implementation Environment and Execution Setup
+
+### Hardware and compute
+
+- **Analysis testbed:** Cuckoo Sandbox host (sample ingestion, task queue, scheduling, artifact storage, reporting) with an isolated Windows guest VM on Oracle VM VirtualBox. The guest runs the analyzer, monitors execution and returns telemetry through the guest agent.
+- **Optimization experiments:** CPU-only on a 2-vCPU Intel Xeon @ 2.10 GHz with 8 GB RAM. A full 17-sample run (CCEA, baselines and 30-seed stability) completes in under a minute.
+
+### Testbed isolation
+
+The testbed applies seven safeguards:
+
+1. network containment or simulation;
+2. no execution on production machines;
+3. shared folders, clipboard and drag-and-drop restricted;
+4. snapshot restoration between analyses;
+5. access-controlled storage of samples, reports and captures;
+6. logging of failures and timeouts so that missing evidence is distinguishable from a completed observation;
+7. verification of network and virtualization boundaries before analysis.
+
+### Software and libraries
+
+- Cuckoo Sandbox with community signature modules, and Oracle VirtualBox;
+- Python 3.14.0, NumPy ≥ 1.26 (RMS and aggregation), openpyxl ≥ 3.1 (multi-sheet XLSX input), SciPy (experiments and notebooks only: Shapiro–Wilk, Wilcoxon), and pandas and matplotlib (notebooks and attack evolution);
+- FastAPI ≥ 0.111, Uvicorn and python-multipart (REST service), pytest ≥ 8.0 (parity tests);
+- Ollama local inference server with the MiST-8B model (GGUF Q4_K_M, 4-bit quantization) and RDFLib for resolving D3FEND ontology labels (LLM mode);
+- HTML/CSS/JavaScript web front end and Jupyter reference notebooks;
+- Astro 7, Starlight and Pagefind for this documentation website.
+
+### Source code repository
+
+[github.com/Vimal-Sabari/CCEA](https://github.com/Vimal-Sabari/CCEA) is the main project repository. It contains the back end (`ccea_core.py`, `attack_evolution.py`, `main.py`, `llm.py`), the front end, notebooks, the 17-sample data, tests, a Mermaid/draw.io workflow diagram and a README.
+
+---
+
+## Module-Wise Implementation and Integration Summary
+
+| Module / stage | Implemented technical details and integration scope | Status |
+|:---|:---|:---|
+| **Module 1: Behavioral Data Pipeline** | Sample collection, VirusTotal validation, SHA-256 de-duplication, AV class labels; Cuckoo CLI submission, scheduling, guest execution; JSON report parsing into signature records | 100% (Integrated; 17 of ≈3,000 samples processed so far) |
+| **Module 2: Impact & Mapping** | MAGIC banding and MI refinement (A<sub>k</sub>); evidence-based ATT&CK mapping; mitigation lookup; D3FEND pools with provenance; export of candidate dataset D (CSV and multi-sheet XLSX) | 100% (Integrated) |
+| **Module 3: Residual_Severity** | CSV table lookup; LLM mode: RS values from the offline MiST-8B pipeline, one validated assessment per (signature, defense) pair, passed to the CCEA core through its RS-estimator interface; the Sample02 evaluation applies the LLM-mode rule to them; cache keyed by pair | Pipeline and core interface complete; web-app adapter not yet switched to MiST-8B |
+| **Module 4: Proposed CCEA** | Shared core: validation, sub-populations, untried-first/exploration/best-credited selection, mutation, RMS fitness, credit assignment, elitism, coverage-and-patience termination, multi-sample aggregation | 100% (Integrated) |
+| **Module 5: Baseline** | Equal-budget random search (same pools, RS source and fitness); paired Shapiro–Wilk and Wilcoxon tests; 30-seed stability | 100% (Functional) |
+| **Module 6: Evaluation & Demo** | FastAPI service (upload CSV/XLSX, `/api/analyze`, `/api/health`, result download); web UI with per-sample C*, fitness and convergence charts; reference notebooks; parity tests | 100% (Functional) |
+| **Module 7: Attack Evolution** | Slots and related signatures from public MITRE tags (MBC, ATT&CK); attack CCEA that reuses the defense code unchanged; held-out MLRan check; before/after defense report; option "Also evolve the attack" in the API and web UI (background job with progress) | 100% (Integrated) |
+
+---
+
+## Detailed Module Descriptions
+
+**Module 1 – Behavioral Data Pipeline.** Samples are submitted through the Cuckoo command-line interface, and the host registers each task in the queue. The scheduler assigns samples one at a time to the guest analyzer, while the Guest Manager signals when the guest is ready for the next task. During execution, the monitor records process activity, API calls, file and registry operations, and network events. After completion or timeout, Cuckoo finalizes the JSON report. The parser loads each report, extracts metadata, retrieves the triggered signatures and their attributes, and emits structured records that preserve provenance. Behavior falls into five areas: file-system, process (creation, injection, hollowing), registry (Run keys, services), memory (allocation, protection changes) and ransomware-specific behavior (encryption, shadow-copy deletion, ransom notes).
+
+**Module 2 – Impact Quantification & Mapping.**
+
+- The MAGIC implementation takes the signatures, V<sub>k</sub>, execution records, SCC and the scoring configuration [1, 35] / B1–B4, and returns the refined A<sub>k</sub> keyed by signature ID.
+- ATT&CK mapping records the signature, observed behavior, technique ID and name, tactic(s) and supporting evidence.
+- The D3FEND stage follows technique → mitigation → D3FEND technique and attaches the artifacts, relationship labels and provenance.
+- The outputs are flattened into dataset D, with one row per (sample, signature, candidate defense), plus optional context columns (Signature/Defense name and description, Tactics, Technique, Initial_Severity) used by LLM mode.
+
+**Module 3 – Residual_Severity.**
+
+- In CSV mode the module returns the `Reduced_Severity` column (the column name in the data files) unchanged, so results are bit-for-bit repeatable.
+- In LLM mode the MiST-8B pipeline runs offline: it resolves each defense in D3FEND, asks the local MiST-8B model for an RS estimate for each signature–defense pair, validates the answer and writes the results to a summary file.
+- These values are passed to the CCEA core through its RS-estimator interface, the same interface the CSV table uses, so the optimizer is unchanged; each pair is assessed once and reused across generations. The Sample02 results were produced this way. The web application's LLM adapter has not yet been switched to read the MiST-8B results, so a plain table upload in the web interface uses the CSV-mode rule.
+- The LLM-mode rule anchors RS to the signature's impact, so that "no mitigation" yields F = 0 and "full mitigation" yields F = 1.
+
+**Module 4 – CCEA.** `DefenseCandidate` objects hold the candidate ID, signature, defense, A<sub>k</sub>, RS, fitness history and evaluation count. The per-sample routine seeds the random generators, builds the sub-populations, and loops through selection, mutation, evaluation, credit and elitism until termination. It returns C* (per-signature defense, A<sub>k</sub>, RS and per-signature fitness), IS, RA, F*, the best generation, generations run, search-space size and the per-generation history. The dataset-level routine validates the upload, runs each sample with seed 42 + i, and aggregates the mean, SD, min, median and max of F*.
+
+**Module 5 – Baseline.** Random search draws as many uniformly random combinations as CCEA evaluated for the same sample. It reuses the same validator and fitness, so any difference reflects the search alone.
+
+**Module 6 – Evaluation & Demo.** The FastAPI service parses CSV or multi-sheet XLSX uploads, applies CORS, runs the optimizer, and returns JSON together with a downloadable results file. The browser front end uploads a report, calls the API, and renders each sample's recommended defenses, fitness, MSS and convergence chart.
+
+**Module 7 – Attack evolution.** The module (`backend/attack_evolution.py`) builds the slots and the related-signature graph from the MBC and ATT&CK tags, runs the attack CCEA with the defense code from Module 4 unchanged, looks the evolved sample up in the held-out MLRan data and returns the best defense for the original and the evolved sample. In the API and the web interface it is switched on with "Also evolve the attack" and runs as a background job. The notebook and the application use the same code, so they give the same numbers.
+
+**End-to-end integration.** A single core module is imported by the notebooks, the API and the tests, so every path produces identical numbers. A parity test asserts that Sample01 reproduces the notebook's F* = 0.822583 at generation 81, and that the LLM seam changes nothing when switched off. The pipeline flows: Cuckoo report → parser → MAGIC + ATT&CK/D3FEND mapping → dataset D → validation → CCEA (RS from CSV or LLM) → C*, MSS and statistics → API/UI.

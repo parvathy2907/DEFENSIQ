@@ -10,19 +10,19 @@ const stages = [
   },
   {
     n: 'III', cls: 's3', title: 'Cooperative Co-Evolutionary Optimisation', href: '/methodology/ccea/',
-    items: ['One sub-population per signature', 'Reduced severity RS ∈ [0, 10] (CSV or LLM)', 'F(C) = (IS − RA) / IS, credit assignment, elitism'],
+    items: ['One sub-population per signature', 'Residual severity RS from the CSV table or MiST-8B (0 = nothing left)', 'F(C) = (IS − RA) / IS, credit assignment, elitism'],
   },
   {
     n: 'IV', cls: 's4', title: 'Output & Evaluation', href: '/evaluation/evaluation-plan/',
-    items: ['Optimal defense strategy C*, fitness F*', 'Malware Severity Score before and after', 'Greedy baseline, Shapiro–Wilk, Wilcoxon (α = 0.05)'],
+    items: ['Best combination found C*, fitness F*', 'Malware Severity Score before and after', 'Random-search baseline, Shapiro–Wilk, Wilcoxon (α = 0.05)', 'Optional: attack evolution'],
   },
 ];
 
 const groups = [
   { tag: 'A', cls: 'g-a', title: 'Project Overview', desc: 'Ransomware background, problem statement, objectives and the security problems addressed.', href: '/overview/introduction/', pages: 3 },
-  { tag: 'B', cls: 'g-b', title: 'Related Work & Research Gap', desc: 'Ten core studies, the foundations used, and how the gap moved from detection to defense selection.', href: '/research/literature-review/', pages: 2 },
-  { tag: 'C', cls: 'g-c', title: 'System & Methodology', desc: 'From Phase 1 to Phase 2, the architecture, and every stage from sandbox to CCEA.', href: '/methodology/evolution/', pages: 10 },
-  { tag: 'D', cls: 'g-d', title: 'Evaluation', desc: 'Malware Severity Score, greedy baseline, statistical tests and residual-severity metrics.', href: '/evaluation/evaluation-plan/', pages: 1 },
+  { tag: 'B', cls: 'g-b', title: 'Related Work & Research Gap', desc: 'Twenty studies, the foundations used, and how the gap moved from detection to defense selection.', href: '/research/literature-review/', pages: 2 },
+  { tag: 'C', cls: 'g-c', title: 'System & Methodology', desc: 'From Phase 1 to Phase 2, the architecture, every stage from sandbox to CCEA, and attack evolution.', href: '/methodology/evolution/', pages: 11 },
+  { tag: 'D', cls: 'g-d', title: 'Implementation & Evaluation', desc: 'Implementation, evaluation methodology, and the measured results: 79% severity reduction, random-search baseline, Sample02 case study and attack evolution.', href: '/evaluation/implementation/', pages: 3 },
   { tag: 'E', cls: 'g-e', title: 'Discussion & Resources', desc: 'Limitations, future work, the full reference list and the team.', href: '/resources/limitations-future-work/', pages: 3 },
 ];
 
@@ -67,9 +67,9 @@ const team = [
   <!-- Key figures -->
   <dl class="facts">
     <div class="f1"><dt>Samples collected</dt><dd>≈ 3,000</dd></div>
-    <div class="f2"><dt>Candidate dataset</dt><dd>17 samples · 2,823 rows</dd></div>
+    <div class="f2"><dt>Candidate dataset</dt><dd>17 samples · 2,791 valid rows</dd></div>
     <div class="f3"><dt>Impact scale</dt><dd>Aₖ ∈ [1, 35]</dd></div>
-    <div class="f4"><dt>Reduced severity</dt><dd>RS ∈ [0, 10]</dd></div>
+    <div class="f4"><dt>Mean severity reduction</dt><dd>79.0% (0.638 → 0.134)</dd></div>
   </dl>
 
   <!-- Architecture at a glance -->
@@ -79,8 +79,8 @@ const team = [
       <a class="sec-link" href="/methodology/architecture/">Full architecture →</a>
     </div>
     <a class="dq-diagram fit glance-fig" href="/methodology/architecture/" aria-label="Open the System Architecture page">
-      <img class="img-light" src="/images/architecture.png" alt="Four-stage framework architecture: behavioural data acquisition; impact quantification and ATT&CK–D3FEND mapping; cooperative co-evolutionary defense optimisation with the Reduced_Severity module; output and evaluation." loading="lazy" />
-    <img class="img-dark" src="/images/architecture-dark.png" alt="Four-stage framework architecture: behavioural data acquisition; impact quantification and ATT&CK–D3FEND mapping; cooperative co-evolutionary defense optimisation with the Reduced_Severity module; output and evaluation." loading="lazy" />
+      <img class="img-light" src="/images/architecture.png" alt="Four-stage framework architecture: behavioural data acquisition; impact quantification and ATT&CK–D3FEND mapping; cooperative co-evolutionary defense optimisation with the Residual_Severity module; output and evaluation." loading="lazy" />
+    <img class="img-dark" src="/images/architecture-dark.png" alt="Four-stage framework architecture: behavioural data acquisition; impact quantification and ATT&CK–D3FEND mapping; cooperative co-evolutionary defense optimisation with the Residual_Severity module; output and evaluation." loading="lazy" />
     </a>
   </section>
 

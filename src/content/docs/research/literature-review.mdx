@@ -125,6 +125,24 @@ This review compares representative studies according to their methodology, prim
     <td>Reviewing the uses and challenges of LLMs in security-related tasks.</td>
     <td><strong>Role in this project:</strong> Provides a broad view of cybersecurity LLMs; task-specific residual-severity estimation still requires a defined input representation, reference labels, and empirical evaluation.</td>
   </tr>
+  <tr>
+    <td><strong>Walker et al. (2019)</strong> [19]<strong></strong></td>
+    <td>Analysis of Cuckoo's threat scoring and classification.</td>
+    <td>Reliability of Cuckoo's own severity scores.</td>
+    <td><strong>Role in this project:</strong> Motivates refining raw Cuckoo severity before use, as MAGIC does.</td>
+  </tr>
+  <tr>
+    <td><strong>Hemberg et al. (2018)</strong> [27]<strong></strong><br/><span style="font-size:0.82em"><a href="https://doi.org/10.1145/3205651.3208287" target="_blank" rel="noopener noreferrer">DOI ↗</a></span></td>
+    <td>Competitive co-evolution of network segmentation defenses and attacker strategies.</td>
+    <td>Finding defense configurations that hold up against changing attacks.</td>
+    <td><strong>Relevance to this project:</strong> Network-level configurations, not malware behaviors; no residual severity per behavior.</td>
+  </tr>
+  <tr>
+    <td><strong>Ming et al. (2017)</strong> [30]<strong></strong></td>
+    <td>Replacement attacks on system-call dependence graphs of malware.</td>
+    <td>Showing that malware behavior can be rewritten to impede behavior-based analysis.</td>
+    <td><strong>Relevance to this project:</strong> Attack side only; no defense recommendation.</td>
+  </tr>
 </DataTable>
 
 <div class="academic-callout" style="margin: 1.5rem 0; padding: 1rem 1.25rem; border-left: 4px solid var(--sl-color-tech); background: var(--academic-card-bg); border: 1px solid var(--academic-card-border); border-left-width: 4px; border-left-color: var(--sl-color-tech); border-radius: 6px;">
@@ -179,10 +197,11 @@ The problem motivating this project is the need to connect these capabilities in
 2. **ATT&CK-based characterization** of observed adversarial behavior.
 3. **ATT&CK–D3FEND mapping** to identify candidate defensive mechanisms.
 4. **Signature impact quantification** to establish severity-related information.
-5. **LLM-based residual-severity estimation** for individual attack–defense pairs.
+5. **Residual-severity estimation** for individual attack–defense pairs (CSV table or the locally run MiST-8B model).
 6. **CCEA-based evaluation and selection** of candidate defense combinations.
+7. **Attack evolution** that swaps signatures for related ones and re-runs the defense search on every evolved sample.
 
-The central research question is whether residual-severity estimates can provide useful evaluation signals for an evolutionary search over candidate defenses, and whether the resulting defense combinations reduce the Malware Severity Score from MSS<sub>before</sub> = IS to MSS<sub>after</sub> = RA(C*), as defined on the [CCEA page](/methodology/ccea/), and whether they outperform a greedy baseline under the project's experimental conditions.
+The central research question is whether residual-severity estimates can provide useful evaluation signals for an evolutionary search over candidate defenses, and whether the resulting defense combinations reduce the Malware Severity Score from MSS<sub>before</sub> = IS to MSS<sub>after</sub> = RA(C*), as defined on the [CCEA page](/methodology/ccea/), and whether they outperform a random-search baseline under the project's experimental conditions. Work on the attack side changes malware to defeat analysis [30], and co-evolution of attackers and defenders has been studied for network defense [27] and with game-theoretic models [5], [28]; in the papers we reviewed, none uses an evolved attack to test a defense-selection method for ransomware.
 
 The framework therefore differs from detection-only approaches by focusing on the relationship between observed attack behavior, defensive mechanisms, remaining severity, and defense-combination selection. Its effectiveness must be established through the evaluation of RS predictions and the comparison of optimized defense combinations against appropriate baselines.
 
@@ -341,4 +360,38 @@ The framework therefore differs from detection-only approaches by focusing on th
     venue="AI, vol. 6, no. 9, Art. no. 216" 
     year={2025} 
     doi="10.3390/ai6090216" 
+  />
+
+  <ReferenceItem 
+    number={19} 
+    authors="A. Walker, M. F. Amjad, and S. Sengupta" 
+    title="Cuckoo's malware threat scoring and classification: Friend or foe?" 
+    venue="Proc. IEEE 9th Annual Computing and Communication Workshop and Conf. (CCWC)" 
+    year={2019} 
+  />
+
+  <ReferenceItem 
+    number={27} 
+    authors="E. Hemberg, J. Zipkin, R. W. Skowyra, N. Wagner, and U.-M. O'Reilly" 
+    title="Adversarial co-evolution of attack and defense in a segmented computer network environment" 
+    venue="Proc. GECCO Companion, Kyoto, Japan, pp. 1648–1655" 
+    year={2018} 
+    doi="10.1145/3205651.3208287" 
+  />
+
+  <ReferenceItem 
+    number={28} 
+    authors="A. Bashir, Z. U. Shamszaman, Z. Song, and T. A. Han" 
+    title="Co-evolutionary dynamics of attack and defence in cybersecurity" 
+    venue="Knowledge-Based Systems, vol. 340, Art. no. 115750" 
+    year={2026} 
+    doi="10.1016/j.knosys.2026.115750" 
+  />
+
+  <ReferenceItem 
+    number={30} 
+    authors="J. Ming, Z. Xin, P. Lan, D. Wu, P. Liu, and B. Mao" 
+    title="Impeding behavior-based malware analysis via replacement attacks to malware specifications" 
+    venue="Journal of Computer Virology and Hacking Techniques, vol. 13, pp. 193–207" 
+    year={2017} 
   />
