@@ -10,7 +10,7 @@ import ReferenceItem from '../../../components/ReferenceItem.astro';
   subtitle="Comprehensive academic bibliography and technical resource index supporting the evolutionary ransomware defense framework." 
 />
 
-The bibliography below lists the published research and primary technical documentation cited across this documentation, numbered in order of first citation. Technical resources are labelled TR-1 to TR-5.
+The bibliography below lists the published research and primary technical documentation cited across this documentation, numbered in order of first citation. Technical resources are labelled TR-1 to TR-5 and carry the numbers [22]–[26].
 
 
 ---
@@ -169,6 +169,61 @@ The bibliography below lists the published research and primary technical docume
     year="Jan. 2019"
     doi="10.1109/CCWC.2019.8666454"
   />
+
+  <ReferenceItem 
+    number={20} 
+    authors="F. C. Onwuegbuche, A. Olaoluwa, A. D. Jurcut, and L. Pasquale" 
+    title="MLRan: A behavioural dataset for ransomware analysis and detection" 
+    venue="arXiv:2505.18613 (dataset on Zenodo)" 
+    year="2025"
+    url="https://zenodo.org/records/23403681"
+  />
+
+  <ReferenceItem 
+    number={21} 
+    authors="MBC Project" 
+    title="Malware Behavior Catalog, Cuckoo signature mapping (branch mbc-cuckoo)" 
+    venue="GitHub, accessed Nov. 2026" 
+    year="2026"
+    url="https://github.com/MBCProject/community"
+  />
+
+  <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0.5rem 0;">[22]–[26] are the technical resources TR-1 to TR-5 listed below.</p>
+
+  <ReferenceItem 
+    number={27} 
+    authors="E. Hemberg, J. Zipkin, R. W. Skowyra, N. Wagner, and U.-M. O'Reilly" 
+    title="Adversarial co-evolution of attack and defense in a segmented computer network environment" 
+    venue="Proc. Genetic and Evolutionary Computation Conf. Companion (GECCO), Kyoto, Japan, pp. 1648–1655" 
+    year="2018"
+    doi="10.1145/3205651.3208287"
+  />
+
+  <ReferenceItem 
+    number={28} 
+    authors="A. Bashir, Z. U. Shamszaman, Z. Song, and T. A. Han" 
+    title="Co-evolutionary dynamics of attack and defence in cybersecurity" 
+    venue="Knowledge-Based Systems, vol. 340, Art. no. 115750" 
+    year="2026"
+    doi="10.1016/j.knosys.2026.115750"
+  />
+
+  <ReferenceItem 
+    number={29} 
+    authors="M. A. Potter and K. A. De Jong" 
+    title="Cooperative coevolution: An architecture for evolving coadapted subcomponents" 
+    venue="Evolutionary Computation, vol. 8, no. 1, pp. 1–29" 
+    year="2000"
+    doi="10.1162/106365600568086"
+  />
+
+  <ReferenceItem 
+    number={30} 
+    authors="J. Ming, Z. Xin, P. Lan, D. Wu, P. Liu, and B. Mao" 
+    title="Impeding behavior-based malware analysis via replacement attacks to malware specifications" 
+    venue="Journal of Computer Virology and Hacking Techniques, vol. 13, pp. 193–207" 
+    year="2017"
+  />
 </div>
 
 ---
@@ -180,16 +235,16 @@ The following primary resources support implementation, terminology, and reprodu
 <div class="academic-feature-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin: 1.5rem 0;">
   <div class="academic-feature-card">
     <div class="feature-icon" style="color: var(--sl-color-accent);">🛡️</div>
-    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">[TR-1] MITRE ATT&CK</h4>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">[22] [TR-1] MITRE ATT&CK</h4>
     <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin-bottom: 0.75rem;">Official adversary tactics and techniques knowledge base.</p>
-    <a href="https://attack.mitre.org/" target="_blank" rel="noopener noreferrer" style="font-size: 0.85rem; color: var(--sl-color-accent); text-decoration: none; font-weight: 500;">
+    <a href="https://attack.mitre.org/matrices/enterprise/" target="_blank" rel="noopener noreferrer" style="font-size: 0.85rem; color: var(--sl-color-accent); text-decoration: none; font-weight: 500;">
       attack.mitre.org ↗
     </a>
   </div>
 
   <div class="academic-feature-card">
     <div class="feature-icon" style="color: var(--sl-color-tech);">⚙️</div>
-    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">[TR-2] MITRE D3FEND</h4>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">[23] [TR-2] MITRE D3FEND</h4>
     <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin-bottom: 0.75rem;">Official cybersecurity countermeasure knowledge graph.</p>
     <a href="https://d3fend.mitre.org/" target="_blank" rel="noopener noreferrer" style="font-size: 0.85rem; color: var(--sl-color-tech); text-decoration: none; font-weight: 500;">
       d3fend.mitre.org ↗
@@ -198,7 +253,7 @@ The following primary resources support implementation, terminology, and reprodu
 
   <div class="academic-feature-card">
     <div class="feature-icon" style="color: var(--sl-color-purple);">📦</div>
-    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">[TR-3] Cuckoo Sandbox</h4>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">[24] [TR-3] Cuckoo Sandbox</h4>
     <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin-bottom: 0.75rem;">Documentation for the sandbox-based dynamic malware-analysis system.</p>
     <a href="https://cuckoo.readthedocs.io/en/latest/" target="_blank" rel="noopener noreferrer" style="font-size: 0.85rem; color: var(--sl-color-purple); text-decoration: none; font-weight: 500;">
       cuckoo.readthedocs.io ↗
@@ -207,7 +262,7 @@ The following primary resources support implementation, terminology, and reprodu
 
   <div class="academic-feature-card">
     <div class="feature-icon" style="color: var(--sl-color-orange);">💻</div>
-    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">[TR-4] Oracle VM VirtualBox</h4>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">[25] [TR-4] Oracle VM VirtualBox</h4>
     <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin-bottom: 0.75rem;">Official virtualization documentation relevant to the configured analysis environment.</p>
     <a href="https://docs.oracle.com/en/virtualization/virtualbox/" target="_blank" rel="noopener noreferrer" style="font-size: 0.85rem; color: var(--sl-color-orange); text-decoration: none; font-weight: 500;">
       docs.oracle.com ↗
@@ -216,7 +271,7 @@ The following primary resources support implementation, terminology, and reprodu
 
   <div class="academic-feature-card" style="grid-column: 1 / -1;">
     <div class="feature-icon" style="color: #06b6d4;">🔍</div>
-    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">[TR-5] VirusTotal Documentation</h4>
+    <h4 style="margin: 0.5rem 0 0.25rem 0; font-size: 1rem;">[26] [TR-5] VirusTotal Documentation</h4>
     <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin-bottom: 0.75rem;">Official documentation for VirusTotal intelligence services and validation interfaces.</p>
     <a href="https://docs.virustotal.com/" target="_blank" rel="noopener noreferrer" style="font-size: 0.85rem; color: #06b6d4; text-decoration: none; font-weight: 500;">
       docs.virustotal.com ↗

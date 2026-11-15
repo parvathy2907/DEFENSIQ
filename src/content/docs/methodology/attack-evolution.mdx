@@ -1,0 +1,165 @@
+---
+title: "Attack Evolution"
+description: "The optional attack evolution: a second cooperative co-evolutionary algorithm swaps a sample's signatures for related ones, and the defense CCEA is re-run on every evolved sample."
+---
+
+import PageIntro from '../../../components/PageIntro.astro';
+import WorkflowDiagram from '../../../components/WorkflowDiagram.astro';
+import ReferenceItem from '../../../components/ReferenceItem.astro';
+
+<PageIntro 
+  subtitle="In the defense search the attack side is fixed to the signatures observed in the sandbox run. To test whether the defense generator still works when the malware changes, we evolve the attack with the same cooperative co-evolutionary algorithm, turned around, and re-run the defense CCEA on every evolved sample. The defense code is not changed."
+  note="No new malware code is generated. The attack only swaps signatures for related ones (signatures that share a public MITRE tag), and we observe how the defense search responds."
+/>
+
+Changing the behavior of malware to defeat behavior-based analysis is a known attack strategy; for example, replacement attacks rewrite system-call dependences into semantically equivalent ones [30]. Here the change is limited to swapping signatures for related ones.
+
+## Idea and Execution
+
+Figure 3.7 shows the execution; the numbers in the figure are the step numbers below:
+
+1. **Upload.** The user uploads one sample or the full dataset and chooses "Also evolve the attack".
+2. **Iteration 1.** The defense CCEA finds the best defense combination for the original sample. Its score F<sub>0</sub> is the starting point.
+3. **Evolve the attack.** The attack CCEA builds an evolved sample (see the two sections below).
+4. **Public-repository check.** The evolved sample is compared with a held-out repository of real ransomware. The count is recorded and never used to steer the search.
+5. **Defense.** The defense CCEA runs on the evolved sample and returns its score F<sub>g</sub>. Every choice that took part in the sample receives the credit 1 − F<sub>g</sub>.
+6. **Stop rule.** After each generation, check whether every choice has been tried and 20 generations have passed without a harder sample, or 100 generations are reached. If not, go back to step 3; if yes, go to step 7.
+7. **Report.** The report gives the best defense for the original sample and for the hardest evolved sample found.
+
+<WorkflowDiagram 
+  title="Execution Flow of Attack Evolution" 
+  figureNumber="Figure 3.7"
+  status="Optional stage"
+  caption="Execution flow of attack evolution. Steps 3 to 5 are repeated until the stop rule (step 6) is met; the defense CCEA answers every evolved sample."
+>
+  <a class="dq-diagram mid" href="/images/attack-evolution-flow.png" target="_blank" rel="noopener noreferrer" aria-label="Open the attack evolution flow at full size">
+    <img class="img-light" src="/images/attack-evolution-flow.png" alt="Flow chart in seven numbered steps: 1 Upload (one sample or the full dataset, option Also evolve the attack); 2 Defense CCEA, iteration 1 (best defense for the original sample); then, inside a dashed box labelled Repeat for every generation, 3 Attack CCEA evolves the sample (one choice per signature slot: the signature itself or a related signature), 4 Public-repository check (MLRan, held out: recorded, not used to steer), 5 Defense CCEA on the evolved sample (best defense; credit 1 − F to every choice taken), 6 Stop rule met? (every choice tried and 20 generations without a harder sample, or 100 generations); no leads back to step 3 for the next generation, yes leads to 7 Report (best defense for the original sample and for the hardest evolved sample)." loading="lazy" />
+    <img class="img-dark" src="/images/attack-evolution-flow-dark.png" alt="Flow chart of attack evolution in seven numbered steps (dark version)." loading="lazy" />
+  </a>
+</WorkflowDiagram>
+
+---
+
+## Slots, Choices and Related Signatures
+
+A sample is a list of signatures. To evolve it, we give every signature of the sample one **slot**. A slot is a position in the sample that can be filled by a different signature. The **choices** of a slot are the original signature itself (so the slot may stay unchanged) and the signatures related to it.
+
+Two signatures are **related** if they share at least one tag from the Malware Behavior Catalog (MBC) mapping of the Cuckoo signatures [21] or an ATT&CK technique ID [22] written in the Cuckoo signature files. This gives 31 groups of related signatures; 67 of the 91 signatures that have defense data have at least one related signature. If a signature has no related signature, its slot gets four random signatures from the pool of 91, drawn once at the start and kept for the whole run.
+
+One evolved sample is built by taking exactly one choice from every slot (Figure 3.8). For example, in Sample01 the slot of `creates_hidden_file` can be filled by itself, `stealth_hiddenfile` or `stealth_hidden_extension`, because these signatures share the ATT&CK tags T1158 or T1564; the evolved sample takes `stealth_hidden_extension`. The slot of `console_output` has no related signature, so it receives four random choices (`has_pdb`, `creates_shortcut`, `injection_runpe` and one more), and the evolved sample takes `injection_runpe`. The slot of `ransomware_shadowcopy` keeps its own signature. A sample never contains the same signature twice, and a signature with a blank ID or without defense data stays fixed.
+
+We use only public tags and invent no labels. Related does not mean equivalent: a shared tag says that two behaviors are linked, not that they do the same thing.
+
+<WorkflowDiagram 
+  title="How One Evolved Sample Is Built" 
+  figureNumber="Figure 3.8"
+  status="Sample01"
+  caption="How one evolved sample is built (example from Sample01, the hardest sample found). Top: the original signatures; each one is a slot. Middle: the choices of each slot (dashed box): the signature itself and its related signatures, or four random signatures if it has none; the thick box with a tick is the choice taken. Bottom: the evolved sample, one signature per slot. Only 4 of the 26 slots are shown."
+>
+  <a class="dq-diagram mid" href="/images/attack-evolution-slots.png" target="_blank" rel="noopener noreferrer" aria-label="Open the slot example at full size">
+    <img class="img-light" src="/images/attack-evolution-slots.png" alt="Four slots of Sample01. Slot 1 ransomware_shadowcopy (related through tag T1490): choices ransomware_shadowcopy, ransomware_bcdedit, disables_system_restore; kept. Slot 2 creates_hidden_file (related through T1158 and T1564): choices creates_hidden_file, stealth_hiddenfile, stealth_hidden_extension; swapped to stealth_hidden_extension. Slot 3 ransomware_message (related through E1486): choices ransomware_message, ransomware_files, ransomware_appends_extensions, ransomware_file_moves and one more; swapped to ransomware_appends_extensions. Slot 4 console_output (no related signature, four random choices): console_output, has_pdb, creates_shortcut, injection_runpe and one more; swapped to injection_runpe." loading="lazy" />
+    <img class="img-dark" src="/images/attack-evolution-slots-dark.png" alt="Four slots of Sample01 and the evolved sample (dark version)." loading="lazy" />
+  </a>
+</WorkflowDiagram>
+
+---
+
+## Attack CCEA
+
+The attack CCEA is the defense CCEA turned around. Both search with the same rules for picking a choice and for stopping, but the defense CCEA chooses defenses and is scored by F, while the attack CCEA chooses a signature for every slot and is scored by 1 − F, the share of the severity that is left after the defense CCEA has done its best. One combination takes one choice from every slot and is therefore one new sample. A choice that tends to give a harder sample (a lower F) receives a higher credit and is picked more often.
+
+| | **Defense CCEA** (Algorithm 1) | **Attack CCEA** (Algorithm 2) |
+|:---|:---|:---|
+| **Goal** | Find the defense combination that removes the most severity (highest F). | Find the evolved sample from which the defense removes the least severity (lowest F), i.e. the sample that is hardest to defend. |
+| **What stays fixed** | The signatures of the sample. | The defense CCEA: it is called unchanged for every evolved sample. |
+| **Sub-populations (one per signature)** | The pool of candidate defenses of the signature. | The slot of the signature: the signature itself plus its related signatures (or four random ones). |
+| **One solution** | One defense from every pool = a complete defense for the sample. | One choice from every slot = one complete evolved sample. |
+| **How a solution is scored** | F(C) = (IS − RA) / IS: the share of the severity that the defenses remove (higher = better defense). | The defense CCEA is run on the evolved sample and returns its best F. The attack score is 1 − F: the share of the severity that is left (higher = harder to defend). |
+| **Credit** | Every defense in the combination receives F. | Every signature choice in the evolved sample receives 1 − F. |
+| **How a choice is picked (same rules in both)** | For every sub-population: (1) a choice that has not been tried yet; otherwise (2) with probability p<sub>e</sub> = 0.25 a random choice; otherwise (3) the choice with the best average credit. Then, with probability p<sub>m</sub> = 0.20, the pick is replaced by another choice of the same sub-population (only if it has more than one choice). | Same as the defense CCEA. |
+| **Counts as an improvement** | F is higher than the best F so far (F > F* + δ). | F is lower than the best F so far (F < F* − δ): a harder sample was found. |
+| **When it stops (same rule in both)** | Every choice has been tried at least once and 20 generations have passed without an improvement, or 100 generations are reached. | Same as the defense CCEA. |
+| **Result** | C*: the best defense combination, with its score F*. | A*: the hardest evolved sample, with its best defense C*; and C<sub>0</sub>, the best defense of the original sample. |
+
+The defense CCEA is used unchanged as a subroutine, DefenseCCEA(·): for the sample it is given, it returns the best defense combination C and its score F, and the attack CCEA uses 1 − F as its own score. A sample is harder the lower its F is. Algorithm 2 keeps the hardest evolved sample found so far, A*, together with its score F* and its best defense C*. Notation: s<sub>k</sub> is the k-th signature of the sample h (and the original signature of slot k); S<sub>k</sub> is the set of choices of slot k; a<sub>k</sub> is the choice taken in slot k; A<sub>g</sub> is the evolved sample of generation g and F<sub>g</sub> its score; n counts the generations without a harder sample. The comments name the matching step of Figure 3.7.
+
+```text
+Algorithm 2: Attack CCEA, evolving one sample h by swapping signatures for related ones
+             (the defense CCEA scores every evolved sample)
+Input:   sample h with signatures s_1..s_N; related-signature graph G;
+         defense CCEA (Algorithm 1, unchanged);
+         p_e = 0.25, p_m = 0.20, τ = 20, δ = 1e-8, G_max = 100  (as in Algorithm 1)
+Output:  hardest evolved sample A*; best defense C_0 for the original sample h;
+         best defense C* for A*
+
+for each s_k:                                          # build the slots
+    S_k ← {s_k} ∪ related(s_k, G)
+    if s_k has no related signature:  S_k ← {s_k} ∪ 4 random signatures
+(C_0, F_0) ← DefenseCCEA(h)                            # step 2: iteration 1
+credit each s_k with 1 − F_0;  A* ← h;  F* ← F_0;  C* ← C_0;  n ← 0
+for g = 1 .. G_max:
+    for each slot k:                                   # step 3: one choice per slot
+        a_k ← untried choice of S_k, else random choice of S_k if rand() < p_e,
+              else best-credited choice of S_k
+        if rand() < p_m and |S_k| > 1:  a_k ← another choice of S_k
+        if a_k is already used in this sample:  a_k ← s_k
+    A_g ← {a_1..a_N}                                   # one evolved sample
+    Lookup(A_g, public repository)                     # step 4: recorded, not used
+    (C_g, F_g) ← DefenseCCEA(A_g); credit each a_k with 1 − F_g     # step 5
+    if F_g < F* − δ:                                   # a harder sample (lower F) was found
+        A*, F*, C* ← A_g, F_g, C_g;  n ← 0
+    else:
+        n ← n + 1
+    if every choice has been tried and n ≥ τ:  break   # step 6: stop rule
+return A*, C_0, C*
+```
+
+Two simplifications are made on purpose. A signature that is swapped in has no rows in the original sample, so it borrows its defense candidates and severities from one sample of the dataset where it really appears (the donor is drawn once per signature per run); these rows are a stand-in, not a measurement. The defense CCEA is re-run from scratch on every evolved sample with the sample's own seed. In these runs the 32 rows without a `Signature_ID` are kept as fixed slots, so the iteration-1 scores differ slightly from the per-sample defense results (mean 0.789 instead of 0.790).
+
+---
+
+## Held-Out Check Against a Public Repository
+
+We look up each evolved sample in MLRan [20], a public behavioral dataset of over 4,800 samples (ransomware and goodware); we use its Cuckoo-analysed ransomware part, 2,330 real ransomware samples from 64 families. The repository is held out: the attack never uses it to choose anything, so it is an independent check.
+
+A whole-list match is not possible, because real samples in the repository list about 9 signatures and our samples 8 to 55. We therefore ask a weaker question: does the evolved sample contain the complete signature list of at least one real ransomware sample that uses at least one swapped-in signature? Such a real sample is inside the evolved sample only because of the evolution. This shows that the evolved sample contains behavior combinations that real ransomware has been seen to have. It does not show that the evolved malware would still run.
+
+---
+
+## Co-Evolution of Attack and Defense
+
+The two CCEAs are coupled through one score: the defense's F is the attack's fitness (1 − F), and the defense is re-optimised against every evolved attack, so each side adapts to the other. The defense restarts from scratch on each evolved sample, so this is alternating co-evolution rather than one shared population. Competitive co-evolution of attack and defense has been used to find network defenses that hold up against changing attacks [27], and the dynamics of evolving attackers and defenders have been studied with evolutionary game theory [5], [28]. Our two CCEAs each follow cooperative co-evolution [17], [29] and are coupled through the score F.
+
+The measured results are on the [Results](/evaluation/results/#attack-evolution-results) page.
+
+---
+
+## Limitations
+
+- Swapped-in signatures borrow rows from another sample.
+- Related signatures share a tag but are not equivalent.
+- Evolved samples are signature sets and were not run in the sandbox.
+- The repository check shows co-occurrence in real ransomware, not that the malware would run.
+- The defense search is randomised, so part of the change in F is search noise.
+
+---
+
+## References
+
+<ReferenceItem number={5} authors="H. Hu, Y. Liu, C. Chen, H. Zhang, and Y. Liu" title="Optimal decision making approach for cyber security defense using evolutionary game" venue="IEEE Transactions on Network and Service Management, vol. 17, no. 3, pp. 1683–1700" year="2020" doi="10.1109/TNSM.2020.2995713" />
+
+<ReferenceItem number={17} authors="X. Ma, X. Li, Q. Zhang, K. Tang, Z. Liang, W. Xie, and Z. Zhu" title="A survey on cooperative co-evolutionary algorithms" venue="IEEE Transactions on Evolutionary Computation, vol. 23, no. 3, pp. 421–441" year="2019" doi="10.1109/TEVC.2018.2868770" />
+
+<ReferenceItem number={20} authors="F. C. Onwuegbuche, A. Olaoluwa, A. D. Jurcut, and L. Pasquale" title="MLRan: A behavioural dataset for ransomware analysis and detection" venue="arXiv:2505.18613" year="2025" url="https://zenodo.org/records/23403681" />
+
+<ReferenceItem number={21} authors="MBC Project" title="Malware Behavior Catalog, Cuckoo signature mapping (branch mbc-cuckoo)" venue="GitHub (accessed Nov. 2026)" url="https://github.com/MBCProject/community" />
+
+<ReferenceItem number={22} authors="MITRE" title="ATT&CK Enterprise Matrix" url="https://attack.mitre.org/matrices/enterprise/" />
+
+<ReferenceItem number={27} authors="E. Hemberg, J. Zipkin, R. W. Skowyra, N. Wagner, and U.-M. O'Reilly" title="Adversarial co-evolution of attack and defense in a segmented computer network environment" venue="Proc. Genetic and Evolutionary Computation Conf. Companion (GECCO), Kyoto, Japan, pp. 1648–1655" year="2018" doi="10.1145/3205651.3208287" />
+
+<ReferenceItem number={28} authors="A. Bashir, Z. U. Shamszaman, Z. Song, and T. A. Han" title="Co-evolutionary dynamics of attack and defence in cybersecurity" venue="Knowledge-Based Systems, vol. 340, Art. no. 115750" year="2026" doi="10.1016/j.knosys.2026.115750" />
+
+<ReferenceItem number={29} authors="M. A. Potter and K. A. De Jong" title="Cooperative coevolution: An architecture for evolving coadapted subcomponents" venue="Evolutionary Computation, vol. 8, no. 1, pp. 1–29" year="2000" doi="10.1162/106365600568086" />
+
+<ReferenceItem number={30} authors="J. Ming, Z. Xin, P. Lan, D. Wu, P. Liu, and B. Mao" title="Impeding behavior-based malware analysis via replacement attacks to malware specifications" venue="Journal of Computer Virology and Hacking Techniques, vol. 13, pp. 193–207" year="2017" />

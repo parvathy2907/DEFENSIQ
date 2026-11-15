@@ -61,10 +61,12 @@ This repository contains the project's documentation website. The first part of 
 | **Analysis environment** | Cuckoo Sandbox (host scheduler + isolated guest VM) |
 | **Impact scale** | A_k ∈ [1, 35] (MAGIC impact quantification) |
 | **Knowledge bases** | MITRE ATT&CK (Enterprise) and MITRE D3FEND |
-| **Reduced severity** | RS ∈ [0, 10], from a pre-computed table or Gemini 2.5 Flash-Lite |
+| **Residual severity** | RS, an integer (0 = nothing left): 0–10 from a pre-computed table (CSV mode) or 0–V_k from the locally run MiST-8B model (LLM mode) |
 | **Optimizer** | Cooperative Co-Evolutionary Algorithm (CCEA) |
-| **Candidate dataset** | 17 samples · 2,823 rows |
-| **Evaluation** | CCEA vs. greedy baseline; Shapiro–Wilk and Wilcoxon signed-rank tests (α = 0.05) |
+| **Candidate dataset** | 17 samples · 2,823 rows (2,791 valid; 451 signatures) |
+| **Evaluation** | CCEA vs. equal-budget random search; Shapiro–Wilk and Wilcoxon signed-rank tests (α = 0.05) |
+| **Main result** | Mean MSS 0.638 → 0.134 (79.0% reduction, p = 1.5 × 10⁻⁵); CCEA beats random search on 15 of 17 samples (p = 2.9 × 10⁻⁴) |
+| **Attack evolution** | Defense score 0.789 on original vs. 0.744 on evolved samples; 12 of 17 evolved samples contain a real MLRan ransomware sample |
 | **Academic years** | 2025–26 (Phase 1) · 2026–27 (Phase 2) |
 | **Research cluster** | Knowledge Engineering & Semantic Computing |
 
@@ -143,9 +145,10 @@ These gaps describe the specific integration this project addresses. Earlier wor
 1. Integration of dynamic malware analysis with behavioral signature processing.
 2. A standardized attack–defense representation using ATT&CK and D3FEND.
 3. Integration of signature impact quantification with residual severity.
-4. Attack–defense assessment through a Reduced_Severity module (CSV or LLM mode).
+4. Attack–defense assessment through a Residual_Severity module (CSV or LLM mode).
 5. CCEA-based optimization of defense combinations.
-6. Experimental evaluation of both the severity estimation and the optimization.
+6. Attack evolution: a second CCEA swaps signatures for related ones, and the defense CCEA answers every evolved sample.
+7. Experimental evaluation of both the severity estimation and the optimization.
 
 ## 7. System architecture
 
@@ -155,10 +158,10 @@ The framework has four stages. The full diagram is on the [System Architecture](
  I. Behavioural Data        II. Impact Quantification     III. Cooperative Co-Evolutionary      IV. Output and
     Acquisition                 & ATT&CK–D3FEND Mapping        Defense Optimisation (CCEA)          Evaluation
  ┌──────────────────┐       ┌──────────────────────┐      ┌───────────────────────────────┐     ┌────────────────────┐
- │ Malware corpus   │       │ Impact scores        │      │ Population initialisation     │     │ Optimal strategy   │
+ │ Malware corpus   │       │ Impact scores        │      │ Population initialisation     │     │ Best combination   │
  │ Validation/dedup │ σ_k → │ A_k ∈ [1,35]         │ P_k, │ Selection & variation  ──► C  │ C*→ │ C*, F*             │
- │ Cuckoo Sandbox   │       │ σ_k → t_k (ATT&CK)   │ A_k  │ Fitness (Reduced_Severity RS) │     │ MSS before / after │
- │ JSON report parse│       │ t_k → mitigation     │ ───► │ Credit assignment             │     │ CCEA vs. greedy    │
+ │ Cuckoo Sandbox   │       │ σ_k → t_k (ATT&CK)   │ A_k  │ Fitness (Residual_Severity)   │     │ MSS before / after │
+ │ JSON report parse│       │ t_k → mitigation     │ ───► │ Credit assignment             │     │ CCEA vs. random    │
  │ Triggered S_h    │       │ → D3FEND pool P_k    │      │ Elitist replacement           │     │ Statistical tests  │
  └──────────────────┘       └──────────────────────┘      │ Termination check ─(no)─┐     │     └────────────────────┘
                                                           └─────────────────────────┴─────┘
@@ -255,23 +258,23 @@ Each generation builds one candidate combination by choosing a collaborator from
 
 Because each combination takes exactly one defense per signature, exploration and mutation replace crossover.
 
-### Reduced_Severity module
+### Residual_Severity module
 
-The module returns, for every signature–defense pair, `RS(σ_k, d_k) ∈ [0, 10]` and a mitigation label (`FULL`, `PARTIAL` or `NONE`).
+The module returns, for every signature–defense pair, `RS(σ_k, d_k)`, an integer where 0 means nothing is left (0–10 in CSV mode, values 0–6 occur; 0–V_k in LLM mode, where V_k is the original Cuckoo severity, 1–6), and a mitigation label (`FULL`, `PARTIAL` or `NONE`).
 
 | Mode | Source of RS | Used for |
 |---|---|---|
-| **CSV mode** | A pre-computed RS table, one row per signature–defense pair | Fast, exactly repeatable runs, and the CCEA-vs-greedy comparison |
-| **LLM mode** | Gemini 2.5 Flash-Lite (`gemini-2.5-flash-lite`), given structured attack and defense evidence | Pairs not yet in the table, and studies of the LLM's estimates |
+| **CSV mode** | A pre-computed RS table, one row per signature–defense pair | Fast, exactly repeatable runs, and all method comparisons |
+| **LLM mode** | MiST-8B run locally (Ollama, GGUF Q4_K_M); defenses resolved in D3FEND with RDFLib; one call per resolvable pair | Sample02 case study and studies of the model's estimates |
 
 In LLM mode the model returns structured JSON, which is validated against a schema before use. The fields are:
 - `evaluation_id`, `signature_name`, `defense_name`
-- `impact_score`, `residual_severity` (an integer 0–10), `mitigation_label`
-- `remaining_attack_capability`, `justification`, `uncertainty_flag`
+- `initial_severity`, `residual_severity` (an integer from 0 to V_k), `mitigation_label`
+- `covered_behaviors`, `remaining_attack_capability`, `justification`, `uncertainty_flag`
 
 Estimates are benchmarked with:
 - Quadratic Weighted Kappa;
-- normalized MAE (MAE / 10);
+- normalized MAE (MAE / RS_max, RS_max = 10);
 - exact-match accuracy and Accuracy@±1;
 - macro-averaged F1 on the mitigation labels.
 
@@ -279,7 +282,8 @@ Estimates are benchmarked with:
 
 ```text
 AM_k  = ε + (1 − ε) · (A_k − 1) / (A_max − 1)     normalized impact         ∈ [0.03, 1]
-RM_k  = RS_k / RS_max                              normalized reduced sev.   ∈ [0, 1]
+RM_k  = RS_k / RS_max          (CSV mode)          normalized residual sev.  ∈ [0, 1]
+RM_k  = AM_k · RS_k / V_k      (LLM mode)
 IS    = sqrt( (1/N) · Σ_k AM_k² )                  impact severity  (MSS_before)
 RA(C) = sqrt( (1/N) · Σ_k RM_k² )                  residual severity (MSS_after for C*)
 F(C)  = (IS − RA(C)) / IS                          collaborative fitness
@@ -301,7 +305,7 @@ Elitist replacement keeps the best combination `C*` and its fitness `F*`. A stag
 
 | Parameter | Symbol | Value |
 |---|:---:|---:|
-| Random seed | — | 42 |
+| Random seed | — | 42 + sample index |
 | Maximum generations | G_max | 100 |
 | Exploration probability | p_e | 0.25 |
 | Mutation probability | p_m | 0.20 |
@@ -309,7 +313,7 @@ Elitist replacement keeps the best combination `C*` and its fitness `F*`. A stag
 | Minimum improvement | δ | 10⁻⁸ |
 | Minimum normalized impact | ε | 0.03 |
 | Maximum impact score | A_max | 35 |
-| Maximum reduced severity | RS_max | 10 |
+| RS scale upper bound (CSV mode) | RS_max | 10 |
 
 ## 11. Stage IV: Output and evaluation
 
@@ -317,14 +321,14 @@ Elitist replacement keeps the best combination `C*` and its fitness `F*`. A stag
 
 | Output | Definition | Purpose |
 |---|---|---|
-| Optimal defense strategy | `C*`, one D3FEND defense per triggered signature, with fitness `F*` | The recommended defense combination |
+| Best combination found | `C*`, one D3FEND defense per triggered signature, with fitness `F*` | The recommended defense combination |
 | MSS_before | `IS` | The sample's severity with no defenses |
 | MSS_after | `RA(C*)` | The severity left with the recommended defenses |
 | Fitness `F*` | `(IS − RA(C*)) / IS` | The fraction of severity removed |
 
-**Greedy baseline.** CCEA is compared with a greedy method that uses the same pools `P_k`, the same RS source and the same fitness definition. Because the inputs are identical, any difference comes from the search itself.
+**Random-search baseline.** CCEA is compared with an equal-budget random search that draws as many random combinations as CCEA evaluated, with the same pools `P_k`, the same RS source and the same fitness definition. Because the inputs are identical, any difference comes from the search itself.
 
-**Statistical validation.** Each comparison is paired per sample: CCEA against greedy, and MSS_before against MSS_after.
+**Statistical validation.** Each comparison is paired per sample: CCEA against random search, and MSS_before against MSS_after.
 
 | Test | Question | Decision rule |
 |---|---|---|
@@ -336,19 +340,23 @@ Elitist replacement keeps the best combination `C*` and its fitness `F*`. A stag
 - convergence over generations;
 - how the recommendations change between CSV and LLM mode.
 
-**Case study.** The evaluation includes a case study: HOPLIGHT, the malware associated with the BeagleBoyz / APT38 group, followed through every stage from triggered signatures to `C*` and MSS before and after.
+**Results (17 samples, CSV mode).** Mean MSS 0.638 → 0.134 (79.0% reduction, Wilcoxon p = 1.5 × 10⁻⁵). Mean F* 0.790 ± 0.022 for CCEA vs. 0.763 for random search (CCEA higher on 15/17, p = 2.9 × 10⁻⁴); larger budgets reach 0.812 (G_max = 500) and 0.826 (G_max = 2000).
+
+**Case study: Sample02 with MiST-8B.** 144 pairs; 129 assessed, 15 skipped (4 defense names not found in D3FEND). Labels: 2 FULL, 5 PARTIAL, 122 NONE. CCEA reaches F* = 0.060 (94% of the severity remains), against 0.810 for the same sample in CSV mode: the RS source decides the outcome.
+
+**Attack evolution.** A second CCEA swaps signatures for related ones (shared MBC or ATT&CK tags) and the defense CCEA answers every evolved sample. Mean defense score 0.789 on the original and 0.744 on the evolved samples; 12 of 17 evolved samples contain the full signature list of a real ransomware sample in the held-out MLRan dataset. Full details: [Results](https://defensiq.vercel.app/evaluation/results/).
 
 ## 12. From Phase 1 to Phase 2
 
 | | Phase 1 design | Phase 2 design (current) |
 |---|---|---|
-| Attack side | Population of attack plans | Observed signatures with impact score `A_k` (1–35) |
+| Attack side | Population of attack plans | Observed signatures with impact score `A_k` (1–35); then evolved by an attack CCEA |
 | Defense side | Population of defense plans | One D3FEND candidate pool `P_k` per signature |
-| Scoring | Impact evaluation | `RS ∈ [0, 10]` from the Reduced_Severity module, combined into `F(C)` |
+| Scoring | Impact evaluation | `RS` (integer, 0 = nothing left) from the Residual_Severity module, combined into `F(C)` |
 | Operators | Selection, crossover, mutation | Untried-first, exploration, best-credited, mutation; credit assignment; elitist replacement |
-| Co-evolution | Attack and defense populations evolve against each other | Cooperative: defense pools are scored together |
+| Co-evolution | Attack and defense populations evolve against each other | Cooperative: defense pools are scored together; attack and defense coupled through `F` (attack fitness `1 − F`) |
 | Output | Optimal defense strategy | Best combination found, `C*`, with `F*` |
-| Evaluation | Not specified | MSS before/after; CCEA vs. greedy; Shapiro–Wilk and Wilcoxon |
+| Evaluation | Not specified | MSS before/after; CCEA vs. random search; Shapiro–Wilk and Wilcoxon |
 
 ## 13. Scope, assumptions and limitations
 
@@ -359,7 +367,8 @@ The framework supports the analysis and selection of defense strategies. It does
 | Dataset | Sample size and representativeness, class imbalance, temporal drift, source bias |
 | Sandbox | Only behavior observed in the configured run, anti-analysis and evasion, execution time limits, a Windows guest VM only |
 | Mapping | ATT&CK technique inference, gaps in ATT&CK–D3FEND coverage, granularity mismatch |
-| Residual severity | Depends on input evidence, prompt and model sensitivity, limits of reference labels |
+| Residual severity | CSV table values are provisional; LLM estimates depend on evidence, prompt and model version; no reference labels yet |
+| Attack evolution | Swapped-in signatures borrow rows from another sample; evolved samples were not run in the sandbox |
 | Optimization | Search-space growth, dependence on seeds, fitness-function assumptions; a recommendation is not a deployment |
 
 All results are limited to the evaluated samples, environment and configuration.
@@ -370,7 +379,9 @@ All results are limited to the evaluated samples, environment and configuration.
 - **Sandbox coverage:** study how environment, timeouts and anti-evasion measures affect the extracted signatures.
 - **Mapping validation:** expert-reviewed benchmark cases and version-pinned ATT&CK and D3FEND tracking.
 - **RS reliability:** prompt-sensitivity studies, repeated-run stability, cross-model benchmarks.
-- **Stronger baselines:** compare CCEA over many seeds with random, greedy and exhaustive search on small instances.
+- **Interaction-aware fitness:** RS on the whole combination, defense cost, overlap and multi-objective search.
+- **Attack evolution:** run evolved samples in the sandbox; richer changes than swapping related signatures.
+- **Search improvements:** adaptive termination, per-signature credit, comparison with exhaustive search on small instances.
 - **Cross-platform telemetry:** Linux eBPF and the macOS Endpoint Security Framework.
 - **Reinforcement learning:** multi-agent RL evaluated against CCEA.
 - **Defense orchestration:** connect recommendations to endpoint policy and SDN firewalls, with human-in-the-loop safeguards.
@@ -381,14 +392,14 @@ All results are limited to the evaluated samples, environment and configuration.
 |---|---|
 | `h` | A ransomware sample |
 | `S_h = {σ_1, …, σ_N}` | Triggered signatures of sample `h` |
-| `V_x` | Cuckoo severity of a signature (input to MAGIC) |
+| `V_k` | Original Cuckoo severity of `σ_k` (input to MAGIC; scales RS in LLM mode), 1–6 |
 | `A_k ∈ [1, 35]` | Impact score of signature `σ_k` |
 | `t_k` | ATT&CK technique mapped to `σ_k` |
 | `P_k` | Pool of candidate D3FEND defenses for `σ_k` |
 | `D` | Candidate dataset of `(h, σ_k, d, A_k)` rows |
 | `C = {d_1, …, d_N}` | Candidate defense combination |
-| `RS(σ_k, d_k) ∈ [0, 10]` | Reduced severity of `σ_k` under `d_k` |
-| `IS`, `RA(C)` | RMS of normalized impact / of normalized reduced severity |
+| `RS(σ_k, d_k)` | Residual severity of `σ_k` under `d_k`: integer, 0–10 (CSV) or 0–V_k (LLM) |
+| `IS`, `RA(C)` | RMS of normalized impact / of normalized residual severity |
 | `F(C)` | Collaborative fitness `(IS − RA) / IS` |
 | `H(d)`, `c(d)` | Fitness history and usage count of defense `d` |
 | `n`, `τ`, `G_max` | Stagnation counter, patience, generation limit |
@@ -416,6 +427,14 @@ All results are limited to the evaluated samples, environment and configuration.
 18. N. O. Jaffal, M. Alkhanafseh and D. Mohaisen, "Large language models in cybersecurity: A survey of applications, vulnerabilities, and defense techniques," *AI*, 6(9), 2025.
 19. A. Walker, M. F. Amjad and S. Sengupta, "Cuckoo's malware threat scoring and classification: Friend or foe?," *IEEE CCWC*, 2019.
 
+20. F. C. Onwuegbuche, A. Olaoluwa, A. D. Jurcut and L. Pasquale, "MLRan: A behavioural dataset for ransomware analysis and detection," arXiv:2505.18613, 2025.
+21. MBC Project, "Malware Behavior Catalog, Cuckoo signature mapping," GitHub.
+22–26. Technical resources TR-1 to TR-5 (ATT&CK, D3FEND, Cuckoo, VirtualBox, VirusTotal).
+27. E. Hemberg et al., "Adversarial co-evolution of attack and defense in a segmented computer network environment," *GECCO Companion*, 2018.
+28. A. Bashir, Z. U. Shamszaman, Z. Song and T. A. Han, "Co-evolutionary dynamics of attack and defence in cybersecurity," *Knowledge-Based Systems*, 340, 2026.
+29. M. A. Potter and K. A. De Jong, "Cooperative coevolution: An architecture for evolving coadapted subcomponents," *Evolutionary Computation*, 8(1), 2000.
+30. J. Ming et al., "Impeding behavior-based malware analysis via replacement attacks to malware specifications," *J. Comput. Virol. Hack. Tech.*, 13, 2017.
+
 The full list, including technical resources TR-1 to TR-5, is on the [References](https://defensiq.vercel.app/resources/references/) page.
 
 ---
@@ -424,14 +443,14 @@ The full list, including technical resources TR-1 to TR-5, is on the [References
 
 ## 17. Site map
 
-The site has a home page and 19 documentation pages in five groups.
+The site has a home page and 22 documentation pages in five groups.
 
 | Group | Pages (`src/content/docs/…`) |
 |---|---|
 | **A · Project Overview** | `overview/introduction` · `overview/problem-objectives` · `overview/utility-security` |
 | **B · Related Work & Research Gap** | `research/literature-review` · `research/gap-contributions` |
-| **C · System & Methodology** | `methodology/evolution` · `methodology/architecture` · `methodology/cuckoo-sandbox` · `methodology/dataset` · `methodology/signature-extraction` · `methodology/impact-quantification` · `methodology/attack-mapping` · `methodology/d3fend-mapping` · `methodology/residual-severity` · `methodology/ccea` |
-| **D · Evaluation** | `evaluation/evaluation-plan` |
+| **C · System & Methodology** | `methodology/evolution` · `methodology/architecture` · `methodology/cuckoo-sandbox` · `methodology/dataset` · `methodology/signature-extraction` · `methodology/impact-quantification` · `methodology/attack-mapping` · `methodology/d3fend-mapping` · `methodology/residual-severity` · `methodology/ccea` · `methodology/attack-evolution` |
+| **D · Implementation & Evaluation** | `evaluation/implementation` · `evaluation/evaluation-plan` · `evaluation/results` |
 | **E · Discussion & Resources** | `resources/limitations-future-work` · `resources/references` · `resources/project-team` |
 
 ## 18. Technology
@@ -454,7 +473,7 @@ The site has a home page and 19 documentation pages in five groups.
 ├── public/
 │   ├── favicon.svg
 │   ├── fonts/                # Self-hosted Helvetica-metric web fonts + license
-│   ├── images/               # Architecture diagrams (light and dark), Amrita logos
+│   ├── images/               # Architecture and attack-evolution diagrams (light and dark), result figures, Amrita logos
 │   └── pagefind/             # Search index (generated by `npm run build`)
 └── src/
     ├── assets/               # Site logo (light and dark variants)

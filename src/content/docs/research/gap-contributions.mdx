@@ -158,14 +158,17 @@ The framework connects observed behavioral signatures with MITRE ATT&CK techniqu
 ### 3. Integration of Signature Impact Quantification and Residual Severity
 The framework incorporates the project's signature impact quantification approach and uses severity-related information in conjunction with LLM-based residual-severity estimation. This distinguishes the estimated impact of an observed behavior from the estimated severity remaining when a defensive mechanism is considered.
 
-### 4. LLM-Based Attack–Defense Assessment
-The framework uses an LLM to evaluate individual attack–defense pairs using the supplied behavioral and defense information. The resulting residual-severity estimates are used as quantitative inputs to the defense-combination optimization process. The quality of these estimates is assessed using reference labels and defined evaluation metrics.
+### 4. Residual-Severity Assessment (CSV and LLM Modes)
+The framework estimates residual severity for individual attack–defense pairs, either from a pre-computed table or with the locally run MiST-8B model, which evaluates each pair using the supplied behavioral and defense information. The resulting residual-severity estimates are used as quantitative inputs to the defense-combination optimization process. The quality of these estimates is assessed using reference labels and defined evaluation metrics.
 
 ### 5. CCEA-Based Defense-Combination Optimization
 The framework formulates defense selection as a search over candidate combinations. CCEA generates and evaluates combinations using the project's severity-based fitness function and retains promising candidates across generations. This avoids the need to enumerate the full combination space explicitly.
 
-### 6. Experimental Evaluation of Severity Estimation and Optimization
-The residual-severity component is evaluated with QWK, normalized MAE, exact-match accuracy, tolerance accuracy and macro-averaged F1 for the mitigation labels. The defense-optimization component is evaluated with the Malware Severity Score before and after the recommended defenses, a comparison against a greedy baseline using the same pools and RS source, and paired statistical testing (Shapiro–Wilk, then the Wilcoxon signed-rank test at α = 0.05). A BeagleBoyz/APT38–HOPLIGHT case study walks through the integrated workflow. See [Evaluation Methodology](/evaluation/evaluation-plan/).
+### 6. Attack Evolution Against the Defense Search
+A second CCEA evolves the sample by swapping its signatures for related ones (signatures that share a public MITRE tag), and the defense CCEA is re-run, unchanged, on every evolved sample. Each evolved sample is checked against a held-out public repository of real ransomware (MLRan). This tests whether the defense generator still works when the malware changes. See [Attack Evolution](/methodology/attack-evolution/).
+
+### 7. Experimental Evaluation of Severity Estimation and Optimization
+The residual-severity component is evaluated with QWK, normalized MAE, exact-match accuracy, tolerance accuracy and macro-averaged F1 for the mitigation labels. The defense-optimization component is evaluated with the Malware Severity Score before and after the recommended defenses, a comparison against an equal-budget random-search baseline using the same pools and RS source, and paired statistical testing (Shapiro–Wilk, then the Wilcoxon signed-rank test at α = 0.05). A Sample02 case study with MiST-8B compares the two RS sources on the same sample. See [Evaluation Methodology](/evaluation/evaluation-plan/) and [Results](/evaluation/results/).
 
 <p style="font-size: 0.85rem; color: var(--sl-color-gray-3); margin-top: 0.75rem;">
   These contributions are intended to be evaluated in terms of the framework's implementation, prediction quality, optimization behavior, and performance on the studied dataset. Claims of superiority over competing systems require direct comparative experiments.
@@ -204,7 +207,7 @@ The proposed framework differs from the reviewed approaches primarily in the way
   <tr>
     <td><strong>Severity Assessment</strong></td>
     <td>May quantify detection risk, feature relevance, malware impact, or strategic utility.</td>
-    <td>Combines signature impact quantification with LLM-estimated residual severity for attack–defense pairs.</td>
+    <td>Combines MAGIC impact quantification with residual severity (RS) for each attack–defense pair.</td>
   </tr>
   <tr>
     <td><strong>Defense Selection</strong></td>

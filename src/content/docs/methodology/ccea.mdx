@@ -8,11 +8,11 @@ import WorkflowDiagram from '../../../components/WorkflowDiagram.astro';
 import ReferenceItem from '../../../components/ReferenceItem.astro';
 
 <PageIntro 
-  subtitle="CCEA is Stage III of the framework. For each malware sample it keeps one sub-population of candidate defenses per triggered signature, assembles combinations from one collaborator per sub-population, scores them with a collaborative fitness built from impact scores and reduced-severity estimates, credits that fitness back to every collaborator, and keeps the best combination found." 
+  subtitle="CCEA is Stage III of the framework. For each malware sample it keeps one sub-population of candidate defenses per triggered signature, assembles combinations from one collaborator per sub-population, scores them with a collaborative fitness built from impact scores and residual-severity estimates, credits that fitness back to every collaborator, and keeps the best combination found." 
   note="The search avoids enumerating every combination. Its output is the best combination found under the configured pools, fitness function and stopping rule, not a proven global optimum."
 />
 
-The Cooperative Co-Evolutionary Algorithm (CCEA) is the optimization component of the framework. It takes the candidate dataset D produced by Stage II (rows (h, σ<sub>k</sub>, d, A<sub>k</sub>)) and, for each sample, searches for the combination of D3FEND defenses that leaves the least aggregate severity. Severity estimates come from the Reduced_Severity module, in either CSV mode (a pre-computed RS table) or LLM mode (Gemini 2.5 Flash-Lite).
+The Cooperative Co-Evolutionary Algorithm (CCEA) is the optimization component of the framework. It takes the candidate dataset D produced by Stage II (rows (h, σ<sub>k</sub>, d, A<sub>k</sub>)) and, for each sample, searches for the combination of D3FEND defenses that leaves the least aggregate severity. Severity estimates come from the Residual_Severity module, in either CSV mode (a pre-computed RS table) or LLM mode (the MiST-8B model, run locally). The same search, turned around, is also used to evolve the attack; see [Attack Evolution](/methodology/attack-evolution/).
 
 ---
 
@@ -42,7 +42,7 @@ The fitness is severity-based only. Deployment cost, performance overhead and co
 
 ### Attack side
 
-The attack side is the set of signatures the sample actually triggered, with their impact scores. In the Phase 1 terms it is the population of attack plans; here it is fixed for the sample being optimized. No new ransomware strains or attack variants are evolved.
+In the defense search, the attack side is the set of signatures the sample actually triggered, with their impact scores. In the Phase 1 terms it is the population of attack plans; it stays fixed while the defenses are searched. The attack is evolved separately by a second CCEA that swaps signatures for related ones and calls this defense CCEA, unchanged, on every evolved sample ([Attack Evolution](/methodology/attack-evolution/)). No new malware code is generated.
 
 ### Defense side: one sub-population per signature
 
@@ -56,7 +56,7 @@ where m<sub>k</sub> is the number of candidate D3FEND defenses mapped to σ<sub>
 
 ### Why it is cooperative co-evolution
 
-The problem is decomposed into one subcomponent per signature, as in the cooperative co-evolution framework surveyed by Ma et al. [17]. Each sub-population contributes one **collaborator** to a combination, and a collaborator is judged by the fitness of the complete combination it takes part in, not on its own. Defenses that repeatedly appear in high-fitness combinations accumulate higher credited fitness and are reused more often.
+The problem is decomposed into one subcomponent per signature, as in the cooperative co-evolution framework introduced by Potter and De Jong [29] and surveyed by Ma et al. [17]. Each sub-population contributes one **collaborator** to a combination, and a collaborator is judged by the fitness of the complete combination it takes part in, not on its own. Defenses that repeatedly appear in high-fitness combinations accumulate higher credited fitness and are reused more often.
 
 The optimization is bounded by the pools: a defense that is not in P<sub>k</sub> cannot be selected for σ<sub>k</sub>.
 
@@ -69,7 +69,7 @@ Each generation builds one candidate combination C by choosing one collaborator 
 1. **Untried first:** if P<sub>k</sub> contains a defense that has never been evaluated (usage count c(d) = 0), choose it.
 2. **Exploration:** otherwise, with probability p<sub>e</sub> = 0.25, choose a random defense from P<sub>k</sub>.
 3. **Best credited:** otherwise, choose the defense with the highest mean of its fitness history H(d).
-4. **Mutation:** with probability p<sub>m</sub> = 0.20, replace the choice with a different random defense from the same pool.
+4. **Mutation:** with probability p<sub>m</sub> = 0.20, replace the choice with a different random defense from the same pool (only if the pool has more than one defense).
 
 Untried-first selection guarantees that every candidate is evaluated at least once, which is the coverage condition used by the termination rule. Exploration and mutation keep the search from settling on early favourites.
 
@@ -79,18 +79,20 @@ The Phase 1 design described improving solutions through selection, crossover an
 
 ---
 
-## Reduced_Severity Module
+## Residual_Severity Module
 
-For every pair (σ<sub>k</sub>, d<sub>k</sub>) in C, fitness evaluation asks the Reduced_Severity module for the severity that remains:
+For every pair (σ<sub>k</sub>, d<sub>k</sub>) in C, fitness evaluation asks the Residual_Severity module for the severity that remains. RS is an integer, and 0 means nothing is left:
 
 ```text
-RS(σ_k, d_k) ∈ [0, 10]      with label FULL / PARTIAL / NONE
+CSV mode:  RS(σ_k, d_k) ∈ {0, 1, ..., 10}     (values 0 to 6 occur in the table)
+LLM mode:  RS(σ_k, d_k) ∈ {0, 1, ..., V_k}    (V_k = original Cuckoo severity, 1 to 6)
+label:     FULL / PARTIAL / NONE
 ```
 
 | Mode | Source of RS | Use |
 |:---|:---|:---|
-| **CSV mode** | Pre-computed RS table with one row per signature–defense pair | Fast, exactly repeatable runs; the same table is used for CCEA and the greedy baseline |
-| **LLM mode** | Gemini 2.5 Flash-Lite, with validated structured output | Pairs not yet in the table; studying the LLM's estimates directly |
+| **CSV mode** | Pre-computed RS table with one row per signature–defense pair | Fast, exactly repeatable runs; the same table is used for CCEA and the random-search baseline |
+| **LLM mode** | MiST-8B run locally (Ollama, GGUF Q4_K_M), with schema-validated JSON output | Estimates RS for individual signature–defense pairs; used in the Sample02 case study |
 
 A mode toggle selects the source. How estimates are produced and validated is described on the [Residual Severity](/methodology/residual-severity/) page.
 
@@ -101,9 +103,10 @@ A mode toggle selects the source. How estimates are produced and validated is de
 Fitness evaluation uses the following quantities:
 
 - A<sub>k</sub>: impact score of signature σ<sub>k</sub>, in [1, 35].
-- RS<sub>k</sub>: reduced severity of σ<sub>k</sub> under the chosen defense d<sub>k</sub>, in [0, 10].
+- RS<sub>k</sub>: residual severity of σ<sub>k</sub> under the chosen defense d<sub>k</sub>, an integer (0 = nothing left); 0 to 10 in CSV mode, 0 to V<sub>k</sub> in LLM mode.
+- V<sub>k</sub>: original Cuckoo severity of σ<sub>k</sub>, an integer from 1 to 6 in our data.
 - A<sub>max</sub> = 35: maximum impact score.
-- RS<sub>max</sub> = 10: maximum reduced severity.
+- RS<sub>max</sub> = 10: upper bound of the residual-severity scale in CSV mode.
 - ε = 0.03: minimum normalized impact.
 
 ### Step 1: Normalize impact
@@ -114,11 +117,14 @@ AM_k = ε + (1 − ε) · (A_k − 1) / (A_max − 1)        ∈ [0.03, 1]
 
 The transformation maps the impact range [1, 35] to [0.03, 1], so even the lowest-impact signature still counts.
 
-### Step 2: Normalize reduced severity
+### Step 2: Normalize residual severity
 
 ```text
-RM_k = RS_k / RS_max                                 ∈ [0, 1]
+CSV mode:  RM_k = RS_k / RS_max                       ∈ [0, 1]
+LLM mode:  RM_k = AM_k · RS_k / V_k                   ∈ [0, AM_k]
 ```
+
+In LLM mode the residual is anchored to the signature's impact: no mitigation (RS = V<sub>k</sub>) leaves RM<sub>k</sub> = AM<sub>k</sub>, and full mitigation (RS = 0) gives RM<sub>k</sub> = 0. A signature whose candidate defenses were all skipped (defense not found in D3FEND) has no assessed candidate and keeps RM<sub>k</sub> = AM<sub>k</sub>. In both modes RM<sub>k</sub> lies in [0, 1].
 
 ### Step 3: Aggregate impact severity
 
@@ -134,7 +140,7 @@ IS is the root mean square of the normalized impact scores. It depends only on t
 RA(C) = sqrt( (1/N) · Σ_k RM_k² )
 ```
 
-RA is the root mean square of the normalized reduced severities under combination C. For the final combination, RA(C*) is the Malware Severity Score after defenses (MSS<sub>after</sub>).
+RA is the root mean square of the normalized residual severities under combination C. For the final combination, RA(C*) is the Malware Severity Score after defenses (MSS<sub>after</sub>).
 
 ### Step 5: Collaborative fitness
 
@@ -179,7 +185,7 @@ where coverage means every candidate defense has been evaluated at least once. O
 
 | Parameter | Symbol | Value | Purpose |
 |:---|:---:|---:|:---|
-| **Random seed** | — | 42 | Reproducible random choices |
+| **Random seed** | — | 42 + sample index | Reproducible random choices |
 | **Maximum generations** | G<sub>max</sub> | 100 | Upper limit on the search |
 | **Exploration probability** | p<sub>e</sub> | 0.25 | Chance of choosing a random defense |
 | **Mutation probability** | p<sub>m</sub> | 0.20 | Chance of swapping the chosen defense |
@@ -187,17 +193,17 @@ where coverage means every candidate defense has been evaluated at least once. O
 | **Minimum improvement** | δ | 10⁻⁸ | Smallest fitness gain that counts as an improvement |
 | **Minimum normalized impact** | ε | 0.03 | Lower bound in impact normalization |
 | **Maximum impact score** | A<sub>max</sub> | 35 | Top of the MAGIC scale |
-| **Maximum reduced severity** | RS<sub>max</sub> | 10 | Top of the RS scale |
+| **RS scale upper bound (CSV mode)** | RS<sub>max</sub> | 10 | Normalizes RS in CSV mode |
 
 ---
 
 ## Algorithm
 
 ```text
-Algorithm: CCEA defense optimisation for one sample h
+Algorithm 1: Defense CCEA, finding the best defense combination C* for one sample h
 Input:   signatures σ_1..σ_N with impact scores A_1..A_N
          sub-populations P_1..P_N (from candidate dataset D)
-         Reduced_Severity module RS(σ, d)  (CSV or LLM mode)
+         Residual_Severity module RS(σ, d)  (CSV or LLM mode)
          p_e = 0.25, p_m = 0.20, τ = 20, δ = 1e-8, G_max = 100
 Output:  best combination C*, fitness F*
 
@@ -212,10 +218,11 @@ for g = 1 .. G_max:
         if some d in P_k has c(d) = 0:   d_k ← that d
         elif random() < p_e:              d_k ← random(P_k)
         else:                             d_k ← argmax_{d ∈ P_k} mean(H(d))
-        if random() < p_m:                d_k ← random(P_k \ {d_k})
+        if random() < p_m and |P_k| > 1:  d_k ← random(P_k \ {d_k})
         C ← C ∪ {d_k}
-    RS_k ← RS(σ_k, d_k) for each k           # Reduced_Severity
-    RA ← sqrt(mean((RS_k / 10)²))
+    RS_k ← RS(σ_k, d_k) for each k           # Residual_Severity
+    RM_k ← RS_k / 10  (CSV)  or  AM_k · RS_k / V_k  (LLM)
+    RA ← sqrt(mean(RM_k²))
     F ← (IS − RA) / IS                       # collaborative fitness
     for each d in C:  H(d) ← H(d) ∪ {F};  c(d) ← c(d) + 1      # credit assignment
     if F > F* + δ:  C* ← C;  F* ← F;  n ← 0                    # elitist replacement
@@ -232,7 +239,7 @@ return C*, F*
   title="Cooperative Co-Evolutionary Optimisation Loop" 
   figureNumber="Figure 3.6"
   status="Stage III"
-  caption="One generation of the CCEA loop. Selection and variation build a combination from one collaborator per sub-population; fitness evaluation queries the Reduced_Severity module; credit assignment and elitist replacement update the search state; the loop repeats until the termination criterion is met."
+  caption="One generation of the CCEA loop. Selection and variation build a combination from one collaborator per sub-population; fitness evaluation queries the Residual_Severity module; credit assignment and elitist replacement update the search state; the loop repeats until the termination criterion is met."
 >
   <div style="overflow-x: auto;">
     <div class="dq-arch" style="grid-template-columns: 1fr 1.25fr 1.25fr 1fr;">
@@ -242,10 +249,10 @@ return C*, F*
         <div class="dq-node"><b>Selection &amp; variation</b>One collaborator per sub-population → C</div>
       </div>
       <div class="dq-box">
-        <div class="lbl">Reduced_Severity module</div>
+        <div class="lbl">Residual_Severity module</div>
         <div class="dq-node"><b>CSV mode</b>Pre-computed RS table</div>
-        <div class="dq-node llm"><b>LLM mode</b>Gemini 2.5 Flash-Lite</div>
-        <div class="dq-node"><b>RS(σ<sub>k</sub>, d<sub>k</sub>) ∈ [0, 10]</b>FULL / PARTIAL / NONE</div>
+        <div class="dq-node llm"><b>LLM mode</b>MiST-8B (local)</div>
+        <div class="dq-node"><b>RS(σ<sub>k</sub>, d<sub>k</sub>), integer</b>0 = nothing left · FULL / PARTIAL / NONE</div>
       </div>
       <div class="dq-stack">
         <div class="dq-node"><b>Fitness evaluation</b>F(C) = (IS − RA) / IS</div>
@@ -267,7 +274,7 @@ return C*, F*
 
 ## Optimal Defense Recommendation
 
-At the end of the search, the algorithm returns C* (one D3FEND defense per signature) and F*. Stage IV reports the sample's Malware Severity Score before defenses (IS) and after them (RA(C*)), and compares the result with a greedy baseline that uses the same pools and RS source. See the [Evaluation Plan](/evaluation/evaluation-plan/).
+At the end of the search, the algorithm returns C* (one D3FEND defense per signature) and F*. Stage IV reports the sample's Malware Severity Score before defenses (IS) and after them (RA(C*)), and compares the result with an equal-budget random-search baseline that uses the same pools and RS source. See the [Evaluation Methodology](/evaluation/evaluation-plan/) and the [Results](/evaluation/results/).
 
 The recommendation selects only from the candidate pools. It does not check operational compatibility, deploy the defenses, or generate policies. Before operational use, a recommended combination would also need checking for:
 
@@ -282,7 +289,7 @@ The recommendation selects only from the candidate pools. It does not check oper
 
 1. **Candidate pool quality:** the search is bounded by the defenses mapped through ATT&CK mitigations to D3FEND. A relevant defense missing from a pool cannot be selected.
 2. **RS sensitivity:** errors or biases in the RS values, whether from the table or the LLM, directly affect the fitness and can steer the search toward weaker choices.
-3. **Heuristic search:** with G<sub>max</sub> = 100 and τ = 20, CCEA evaluates a subset of the combination space and does not guarantee the global optimum.
+3. **Heuristic search:** with G<sub>max</sub> = 100 and τ = 20, CCEA evaluates a subset of the combination space and does not guarantee the global optimum. A larger budget raises the mean F* from 0.790 to 0.812 (G<sub>max</sub> = 500) and 0.826 (G<sub>max</sub> = 2000).
 4. **Single objective:** cost, deployment effort, latency and coverage breadth are not part of the fitness.
 5. **Per-sample optimization:** each sample is optimized separately; the recommendation for one sample is not automatically valid for another.
 
@@ -306,4 +313,13 @@ The recommendation selects only from the candidate pools. It does not check oper
   venue="IEEE Transactions on Evolutionary Computation, vol. 23, no. 3, pp. 421–441" 
   year="2019" 
   doi="10.1109/TEVC.2018.2868770" 
+/>
+
+<ReferenceItem 
+  number={29} 
+  authors="M. A. Potter and K. A. De Jong" 
+  title="Cooperative coevolution: An architecture for evolving coadapted subcomponents" 
+  venue="Evolutionary Computation, vol. 8, no. 1, pp. 1–29" 
+  year="2000" 
+  doi="10.1162/106365600568086" 
 />

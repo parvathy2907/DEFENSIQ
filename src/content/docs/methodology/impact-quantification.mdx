@@ -40,7 +40,7 @@ The purpose of this stage is to support the comparison of attack signatures. It 
 
 ## Initial Severity Assignment
 
-The first pass of the impact-quantification algorithm assigns each signature an initial score based on its malware-analysis severity value, denoted as *V<sub>x</sub>* (Cuckoo's own severity for the signature), and on how frequently the signature occurs in the repository.
+The first pass of the impact-quantification algorithm assigns each signature an initial score based on its malware-analysis severity value, denoted as *V<sub>k</sub>* (Cuckoo's own severity for the signature), and on how frequently the signature occurs in the repository.
 
 The algorithm uses four severity bands:
 
@@ -137,7 +137,7 @@ The algorithm receives the signature information and repository-level evidence r
 ### Inputs
 
 - **Behavioral signatures:** The signatures extracted from the Cuckoo Sandbox analysis reports.
-- **Initial severity values (*V<sub>x</sub>*):** Malware-analysis severity scores used during initial placement.
+- **Initial severity values (*V<sub>k</sub>*):** Malware-analysis severity scores used during initial placement.
 - **Execution records:** Information identifying which signatures were triggered by each analyzed sample.
 - **Signature Co-occurrence Count (SCC):** Repository-level information describing the co-occurrence of signatures.
 - **Ransomware knowledge base:** Existing behavioral information used by the refinement method.

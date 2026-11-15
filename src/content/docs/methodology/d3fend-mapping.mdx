@@ -94,7 +94,7 @@ Candidate defense identification connects each signature to a pool of D3FEND def
 3. **Map mitigations to D3FEND:** Each mitigation is mapped to the D3FEND defensive techniques that implement it.
 4. **Retrieve defense information:** For each candidate defense, the stage retrieves its name, canonical identifier, digital artifacts and relationship labels from the pinned D3FEND data.
 5. **Construct the candidate pool:** The defenses form the pool P<sub>k</sub> for signature σ<sub>k</sub>, and each (sample, signature, defense, impact score) combination becomes a row of the candidate dataset D (17 samples, 2,823 rows).
-6. **Evaluate effectiveness separately:** Each signature–defense pair is scored by the Reduced_Severity module, which returns the severity that remains on a 0–10 scale.
+6. **Evaluate effectiveness separately:** Each signature–defense pair is scored by the Residual_Severity module, which returns the severity that remains as an integer, where 0 means nothing is left (0 to 10 in CSV mode, 0 to the signature's original Cuckoo severity V<sub>k</sub> in LLM mode).
 
 ### Worked example
 
@@ -148,7 +148,7 @@ The mapping contains two distinct relationships:
 
 These relationships serve different purposes. The first helps identify candidate defenses for an observed attack technique; the second provides information about the defensive mechanism's function.
 
-The resulting structured data are supplied to the Reduced_Severity module together with the attack information and impact score. The module considers the defense in the context of the observed behavior and returns RS ∈ [0, 10] for use by the optimization stage.
+The resulting structured data are supplied to the Residual_Severity module together with the attack information. In LLM mode, the defense name is first resolved against the pinned D3FEND ontology with RDFLib and exact label matching; a name that does not resolve is marked `not_found_in_d3fend` and skipped, never guessed. The module considers the defense in the context of the observed behavior and returns RS, an integer where 0 means nothing is left, for use by the optimization stage. See [Residual Severity](/methodology/residual-severity/).
 
 :::caution[Evolving Knowledge Graph Status]
 D3FEND's related-offensive-technique mappings may include inferred or experimental relationships. MITRE notes that the knowledge graph continues to evolve and that such relationships should not automatically be interpreted as proof of operational effectiveness ([D3FEND FAQ](https://d3fend.mitre.org/faq/)). The project therefore treats mapped defenses as candidates that require contextual assessment rather than guaranteed countermeasures.

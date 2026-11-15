@@ -8,7 +8,7 @@ import WorkflowDiagram from '../../../components/WorkflowDiagram.astro';
 import ReferenceItem from '../../../components/ReferenceItem.astro';
 
 <PageIntro 
-  subtitle="Phase 1 (Panel Review 2, 30 March 2026) proposed an evolutionary algorithm over populations of attack plans and defense plans. Phase 2 implements that idea and adds a concrete impact score, an LLM that scores each defense, and a cooperative search."
+  subtitle="Phase 1 (Panel Review 2, 30 March 2026) proposed an evolutionary algorithm over populations of attack plans and defense plans. Phase 2 implements that idea and adds a concrete impact score, a residual-severity estimate for each defense, a cooperative search, and an attack side that is evolved against the defense."
 />
 
 ## Phase 1 Design
@@ -36,17 +36,17 @@ The Phase 1 objectives were to construct an attack dataset from analyzed ransomw
 
 ## Phase 2 Design
 
-Phase 2 keeps the same structure and makes each part concrete. The attack side becomes the signatures actually observed in Cuckoo Sandbox, each with a MAGIC impact score. The defense side becomes one D3FEND candidate pool per signature. Impact evaluation becomes a reduced-severity estimate RS ∈ [0, 10] per attack–defense pair, taken from a pre-computed table or from Gemini 2.5 Flash-Lite, combined in the collaborative fitness F(C) = (IS − RA) / IS. The variation-and-selection loop becomes the CCEA search. The full Phase 2 architecture is on the [System Architecture](/methodology/architecture/) page.
+Phase 2 keeps the same structure and makes each part concrete. The attack side becomes the signatures actually observed in Cuckoo Sandbox, each with a MAGIC impact score. The defense side becomes one D3FEND candidate pool per signature. Impact evaluation becomes a residual-severity estimate RS per attack–defense pair (an integer, 0 = nothing left), taken from a pre-computed table or from the locally run MiST-8B model, combined in the collaborative fitness F(C) = (IS − RA) / IS. The variation-and-selection loop becomes the CCEA search. The attack side is no longer fixed for good: after the defense is found, a second CCEA evolves the sample by swapping signatures for related ones, and the defense CCEA answers every evolved sample ([Attack Evolution](/methodology/attack-evolution/)). The full Phase 2 architecture is on the [System Architecture](/methodology/architecture/) page.
 
 | | Phase 1 design | Phase 2 design (current) |
 |:---|:---|:---|
-| **Attack side** | Population of attack plans from the attack dataset | Population of attack plans fixed to the observed signatures, each with impact score A<sub>k</sub> on 1–35 |
+| **Attack side** | Population of attack plans from the attack dataset | Observed signatures, each with impact score A<sub>k</sub> ∈ [1, 35] (iteration 1); then evolved by an attack CCEA that swaps signatures for related ones |
 | **Defense side** | Population of defense plans from the defense dataset | One candidate defense pool P<sub>k</sub> per signature, from the ATT&CK–D3FEND mapping |
-| **Scoring a defense** | Impact evaluation | Reduced severity RS<sub>k</sub> ∈ [0, 10] from the Reduced_Severity module (CSV table or Gemini 2.5 Flash-Lite), combined into the collaborative fitness F(C) = (IS − RA) / IS |
+| **Scoring a defense** | Impact evaluation | RS<sub>k</sub> (integer, 0 = nothing left) from the Residual_Severity module (CSV table or MiST-8B), combined into F(C) = (IS − RA) / IS |
 | **Search operators** | Selection, crossover, mutation [16] | One collaborator per sub-population: untried-first, exploration (p<sub>e</sub> = 0.25), best credited fitness, mutation (p<sub>m</sub> = 0.20); credit assignment and elitist replacement |
-| **Co-evolution** | Attack and defense populations evolve against each other | Cooperative: each defense pool is a subpopulation, scored together through one combination's fitness [17] |
+| **Co-evolution** | Attack and defense populations evolve against each other | Cooperative: each pool is a sub-population, scored together through one combination's fitness [17]; attack and defense are coupled through F (attack fitness = 1 − F) |
 | **Output** | Optimal defense strategy | Best combination found, C*, and its fitness F* |
-| **Evaluation** | Not specified | Malware Severity Score before and after; CCEA against a greedy baseline; Shapiro–Wilk and Wilcoxon signed-rank tests (α = 0.05) |
+| **Evaluation** | Not specified | MSS before/after; CCEA vs. random search; Shapiro–Wilk and Wilcoxon (α = 0.05) |
 
 ---
 
@@ -58,7 +58,7 @@ At Phase 1 the panel was told that solutions improve iteratively through selecti
 
 ### Is it still co-evolutionary?
 
-Phase 2 does not evolve new ransomware: the population of attack plans is fixed to the behaviors that were actually observed. The method is **cooperative** co-evolution in the sense described by Ma et al. [17]. The defense problem is decomposed into one subcomponent per signature, each signature's candidate pool acts as a subpopulation, and every choice is judged by how well the complete combination scores. A defense that does well in combinations with high fitness has a higher average fitness and is reused more often.
+Yes, in two ways. Within the defense search the method is **cooperative** co-evolution in the sense of Ma et al. [17], introduced by Potter and De Jong [29]: the defense problem is decomposed into one subcomponent per signature, each candidate pool acts as a sub-population, and every choice is judged by how well the complete combination scores. Attack and defense are also co-evolved: the two CCEAs are coupled through one score (the defense's F is the attack's fitness, 1 − F), and the defense is re-optimised against every evolved attack, so each side adapts to the other [27]. In the defense search the attack stays fixed to what was observed; the attack is evolved separately by a second CCEA that only swaps signatures for related ones, and no new malware code is generated. See [Attack Evolution](/methodology/attack-evolution/).
 
 ### Evolutionary algorithm or evolutionary game theory?
 
@@ -101,4 +101,22 @@ The registered problem statement asks for "optimal defense strategies". In Phase
   venue="IEEE Transactions on Evolutionary Computation, vol. 23, no. 3, pp. 421–441" 
   year="2019" 
   doi="10.1109/TEVC.2018.2868770" 
+/>
+
+<ReferenceItem 
+  number={27} 
+  authors="E. Hemberg, J. Zipkin, R. W. Skowyra, N. Wagner, and U.-M. O'Reilly" 
+  title="Adversarial co-evolution of attack and defense in a segmented computer network environment" 
+  venue="Proc. Genetic and Evolutionary Computation Conf. Companion (GECCO), Kyoto, Japan, pp. 1648–1655" 
+  year="2018" 
+  doi="10.1145/3205651.3208287" 
+/>
+
+<ReferenceItem 
+  number={29} 
+  authors="M. A. Potter and K. A. De Jong" 
+  title="Cooperative coevolution: An architecture for evolving coadapted subcomponents" 
+  venue="Evolutionary Computation, vol. 8, no. 1, pp. 1–29" 
+  year="2000" 
+  doi="10.1162/106365600568086" 
 />

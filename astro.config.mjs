@@ -56,14 +56,17 @@ export default defineConfig({
             { label: 'Signature Impact Quantification', slug: 'methodology/impact-quantification' },
             { label: 'MITRE ATT&CK Mapping', slug: 'methodology/attack-mapping' },
             { label: 'MITRE D3FEND Mapping', slug: 'methodology/d3fend-mapping' },
-            { label: 'Reduced Severity (CSV / LLM)', slug: 'methodology/residual-severity' },
+            { label: 'Residual Severity (CSV / LLM)', slug: 'methodology/residual-severity' },
             { label: 'Cooperative Co-Evolutionary Algorithm', slug: 'methodology/ccea' },
+            { label: 'Attack Evolution', slug: 'methodology/attack-evolution' },
           ],
         },
         {
-          label: 'D · Evaluation',
+          label: 'D · Implementation & Evaluation',
           items: [
+            { label: 'Implementation', slug: 'evaluation/implementation' },
             { label: 'Evaluation Methodology', slug: 'evaluation/evaluation-plan' },
+            { label: 'Results', slug: 'evaluation/results' },
           ],
         },
         {
